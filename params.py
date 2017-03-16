@@ -14,8 +14,10 @@ APRInvest    = 0.0962  # S&P 25-year annualized (1989-2014)
 accounts = [\
 {'label'         : 'salary',
  'type'          : 'income',
+ 'minAge'        : 0.0,
+ 'maxAge'        : 65.0,
  'delMonthly'    : 5500.0,
- 'adjAPR'        : -APRInflation},
+ 'adjAPR'        : 0.0},
 
 {'label'         : 'household budget',
  'type'          : 'expense',
