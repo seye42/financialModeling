@@ -9,10 +9,23 @@ def convAPRtoMon(rAnnual):
     Convert APR to equivalent monthly rate
     '''
 
+    # preserve sign of negative rates to indicate discount calculations later
+    sign = np.sign(rAnnual)
+    rAnnual = np.fabs(rAnnual)
+
     # solve (1 + rAnnual) = (1 + rMonthly) ** 12
     rMonthly = (1.0 + rAnnual) ** (1.0 / 12.0) - 1.0
 
-    return rMonthly
+    return sign * rMonthly
+
+
+def compoundInt(P, r):
+    if r >= 0.0:
+        F = P * (1.0 + r)
+    else:
+        F = P / (1.0 + np.fabs(r))
+
+    return F
 
 
 def timeSeries(params, accounts):
@@ -26,32 +39,40 @@ def timeSeries(params, accounts):
     discret  = np.zeros_like(ages)
     netWorth = np.zeros_like(ages)
 
-    # initialize interest-bearing accounts
+    # initialize accounts
     for a in accounts:
-        if 'intAPR' in a:
+        if 'adjAPR' in a:  # income type
+            # convert APR to monthly rate
+            a['adjMonthly'] = convAPRtoMon(a['adjAPR'])
+
+            # initialize time series
+            a['payments'] = np.zeros_like(ages)
+            a['payments'][0] = a['delMonthly']
+        elif 'intAPR' in a:  # loan, savings, Roth, or IRA type
             # convert APR to monthly rate
             a['intMonthly'] = convAPRtoMon(a['intAPR'])
 
-            # initialize balance time series
+            # initialize time series and net worth
+            a['payments'] = np.zeros_like(ages)
             a['balances'] = np.zeros_like(ages)
             a['balances'][0] = a['initBalance']
             netWorth[0] += a['initBalance']
-        if a['type'] == 'loan':
-            a['payments'] = np.zeros_like(ages)
 
     # run time series calculations
     for idx in range(1, len(ages)):  # skip the first age since it's just initial value data
         # get total income and expenses for this period
         for a in accounts:
             if a['type'] == 'income':
-                incomes[idx] += a['delMonthly']
+                payment = compoundInt(a['payments'][idx - 1], a['adjMonthly'])
+                a['payments'][idx] = payment
+                incomes[idx] += payment
             elif a['type'] == 'expense':
                 expenses[idx] += a['delMonthly']
 
         # accrue interest on accounts
         for a in accounts:
             if 'intMonthly' in a:
-                a['balances'][idx] = a['balances'][idx - 1] * (1.0 + a['intMonthly'])
+                a['balances'][idx] = compoundInt(a['balances'][idx - 1], a['intMonthly'])
 
         # determine net cash flow this month
         discret[idx] = incomes[idx] + expenses[idx]
@@ -79,6 +100,7 @@ def timeSeries(params, accounts):
                     contrib = min([incomes[idx], avail, a['maxContrib']])
                         # can't contribute unless there's earned income to cover it
                     a['balances'][idx] += contrib
+                    a['payments'][idx] += contrib
                     avail -= contrib
 
         # add whatever remains to savings
@@ -86,6 +108,7 @@ def timeSeries(params, accounts):
             for a in accounts:
                 if a['type'] == 'savings':
                     a['balances'][idx] += avail
+                    a['payments'][idx] += avail
                     avail = 0.0
                     break
 
