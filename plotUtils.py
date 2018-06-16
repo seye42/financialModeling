@@ -28,6 +28,7 @@ def singlePlot(x, y, xLabel, yLabel):
     # add labeling
     plt.xlabel(xLabel)
     plt.ylabel(yLabel)
+    plt.grid(True)
 
 
 def multiPlot(x, ys, xLabel, yLabel, yNames):
@@ -38,7 +39,7 @@ def multiPlot(x, ys, xLabel, yLabel, yNames):
     # determine automatic range scaling
     (norm, yLabel) = getAutoRange(np.amax(np.fabs(ys)), yLabel)
 
-    # plot of the each y series
+    # plot each y series
     for y in ys:
         plt.plot(x, y / norm)
 
@@ -46,3 +47,4 @@ def multiPlot(x, ys, xLabel, yLabel, yNames):
     plt.xlabel(xLabel)
     plt.ylabel(yLabel)
     plt.legend(yNames, loc="best")
+    plt.grid(True)
