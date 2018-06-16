@@ -1,8 +1,9 @@
 params = {}
 
 # ages
-params['startAge'] = 37.0
-params['stopAge']  = 75.0
+params['startAge'] = 37.0833
+params['stopAge']  = 80.0
+params['birthMonth'] = 5
 
 # interest rates
 APRInflation = 0.0322  # 1913-2014 US CPI average

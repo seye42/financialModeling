@@ -1,6 +1,6 @@
 import math
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import plotUtils
 
 
@@ -37,6 +37,11 @@ def timeSeries(params, accounts):
     ages = np.arange(params['startAge'], params['stopAge'], 1.0 / 12)
         # in years, but always with monthly steps
 
+    # figure out where Dec falls in the age array (for IRA RMDs)
+    fracMo, _ = math.modf(params['startAge'])
+    nextDecIdx = 12 - (params['birthMonth'] + int(round(fracMo * 12.0))) % 12
+        # month for integer ages plus fractional year (converted to month indices)
+
     # initialize aggregate time series arrays
     incomes  = np.zeros_like(ages)
     expenses = np.zeros_like(ages)
@@ -62,6 +67,11 @@ def timeSeries(params, accounts):
             a['balances'][0] = a['initBalance']
             netWorth[0] += a['initBalance']
 
+            # initialize previous Dec's balance for RMD calculations on IRAs
+            if a['type'] == 'IRA':
+                a['prevDecBalance'] = a['initBalance']
+                    # best estimate for now, will be updated below
+
     # run time series calculations
     for idx in range(1, len(ages)):  # skip the first age since it's just initial value data
         # get total income and expenses for this period
@@ -78,21 +88,32 @@ def timeSeries(params, accounts):
                     incomes[idx] += payment
                 else:  # age is outside of bounds, inactive income stream
                     a['payments'][idx] = 0.0
+            elif a['type'] == 'IRA':
+                payment = getReqMinDistrib(ages[idx], a['prevDecBalance'])
+                a['payments'][idx] = -payment  # withdrawals are negative
+                incomes[idx] += payment
             elif a['type'] == 'expense':
                 expenses[idx] += a['delMonthly']
-            # TODO: include RMDs for IRAs
 
         # accrue interest on accounts
         for a in accounts:
             if 'intMonthly' in a:  # interest-bearing account
                 a['balances'][idx] = compoundInt(a['balances'][idx - 1], a['intMonthly'])
 
+        # update end-of-Dec tracking for IRA RMDs
+        if idx == nextDecIdx:  # it's Dec, save balances (with new interest) for use next year
+            nextDecIdx += 12
+            for a in accounts:
+                if a['type'] == 'IRA':
+                    a['prevDecBalance'] = a['balances'][idx]
+
         # determine net cash flow this month
         discret[idx] = incomes[idx] + expenses[idx]
         avail = discret[idx]
 
-        # pay down any outstanding loans
+        # use positive cash flow against prioritized list of activities
         if avail > 0.0:
+            # pay down any outstanding loans
             for a in accounts:
                 if a['type'] == 'loan' and a['balances'][idx] < 0.0:
                     # loan with outstanding balance
@@ -106,32 +127,60 @@ def timeSeries(params, accounts):
                     if a['balances'][idx] >= 0.0:
                         print('%s loan paid off at age %0.2f\n' % (a['label'], ages[idx]))
 
-        # maximize Roth IRA contributions
-        if avail > 0.0:
+            # maximize Roth IRA contributions
+            if avail > 0.0:
+                for a in accounts:
+                    if a['type'] == 'Roth':
+                        # TODO: switch to getRothContrib() with separately calculated earned and Roth
+                        # incomes
+                        contrib = min([incomes[idx], avail, a['maxContrib']])
+                            # can't contribute unless there's earned income to cover it
+                        a['balances'][idx] += contrib
+                        a['payments'][idx] += contrib
+                        avail -= contrib
+
+            # add whatever remains to savings
+            if avail > 0.0:
+                for a in accounts:
+                    if a['type'] == 'savings':
+                        a['balances'][idx] += avail
+                        a['payments'][idx] += avail
+                        avail = 0.0
+                        break
+
+        # tap prioritized list of savings to address negative cash flow
+        elif avail < 0.0:
+            # withdraw from general (taxable) savings
             for a in accounts:
-                if a['type'] == 'Roth':
-                    # TODO: switch to getRothContrib() with separately calculated earned and Roth
-                    # incomes
-                    contrib = min([incomes[idx], avail, a['maxContrib']])
-                        # can't contribute unless there's earned income to cover it
-                    a['balances'][idx] += contrib
-                    a['payments'][idx] += contrib
-                    avail -= contrib
+                if a['type'] == 'savings' and a['balances'][idx] > 0.0:
+                    # savings with an available balance
+                    withdraw = min([-avail, a['balances'][idx]])
+                    a['balances'][idx] -= withdraw
+                    a['payments'][idx] -= withdraw
+                    avail += withdraw  # avail is negative
+                # TODO: estimate capital gains realizations
 
-        # add whatever remains to savings
-        if avail > 0.0:
-            for a in accounts:
-                if a['type'] == 'savings':
-                    a['balances'][idx] += avail
-                    a['payments'][idx] += avail
-                    avail = 0.0
-                    break
+            # withdraw from IRA accounts
+            if avail < 0.0:
+                for a in accounts:
+                    if a['type'] == 'IRA' and a['balances'][idx] > 0.0:
+                        # IRA with an available balance
+                        withdraw = min([-avail, a['balances'][idx]])
+                        a['balances'][idx] -= withdraw
+                        a['payments'][idx] -= withdraw
+                        avail += withdraw  # avail is negative
+                        incomes[idx] += withdraw
+                            # IRA distributions are normal income for tax purposes
 
-        # TODO: handle cases where avail < 0.0 and account(s) need to be tapped
-
-        # CORE ASSUMPTION HERE is that the discretionary money use prioritization is monthly
-        # expenses, then loans, then Roths, then taxable savings
-        # TODO: revisit this
+            # withdraw from Roth accounts
+            if avail < 0.0:
+                for a in accounts:
+                    if a['type'] == 'Roth' and a['balances'][idx] > 0.0:
+                        # Roth with an available balance
+                        withdraw = min([-avail, a['balances'][idx]])
+                        a['balances'][idx] -= withdraw
+                        a['payments'][idx] -= withdraw
+                        avail += withdraw  # avail is negative
 
         # calculate net worth
         for a in accounts:
@@ -143,30 +192,34 @@ def timeSeries(params, accounts):
                         ['total income', 'total expenses', 'discretionary'])
 
     # plot loan class payments and account balances
-    loans = []
-    loanNames = []
+    balances = []
     payments = []
-    paymentNames = []
+    names = []
     doPlot = False
     for a in accounts:
         if a['type'] == 'loan':
             doPlot = True
-            loans.append(a['balances'])
-            loanNames.append(a['label'])
+            balances.append(a['balances'])
             payments.append(a['payments'])
-            paymentNames.append(a['label'])
+            names.append(a['label'])
     if doPlot:
-        plotUtils.multiPlot(ages, loans, 'age (yr)', 'balance (2018 $)', loanNames)
-        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2018 $/mo)', paymentNames)
+        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (2018 $)', names)
+        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2018 $/mo)',names)
 
     # plot savings class account balances
-    savings = []
-    savingNames = []
+    balances = []
+    payments = []
+    names = []
+    doPlot = False
     for a in accounts:
         if a['type'] in ['savings', 'Roth', 'IRA']:
-            savings.append(a['balances'])
-            savingNames.append(a['label'])
-    plotUtils.multiPlot(ages, savings, 'age (yr)', 'balance (2018 $)', savingNames)
+            doPlot = True
+            balances.append(a['balances'])
+            payments.append(a['payments'])
+            names.append(a['label'])
+    if doPlot:
+        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (2018 $)', names)
+        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2018 $/mo)', names)
 
     # plot net worth
     plotUtils.singlePlot(ages, netWorth, 'age (yr)', 'net worth (2018 $)')
@@ -203,12 +256,14 @@ def getReqMinDistrib(age, P):
     Calculations are based on IRS publication 590-B, Table III from 2017
     '''
 
-    # Technically, rules allow for first RMD to occur by 1 Apr of the year following the one in
-    # which the person turns 70.5. This can sometimes forestall when the first distribution must
-    # be taken for people with birthdays in the first half of the year. The IRS rule wording is a
-    # little unclear about whether a second withdrawal needs to occur in that same year. The
-    # simplifying assumption used here is that the first RMD is taken the year the account holder
-    # age is 70 and proceeds normally on a monthly basis thereafter.
+    '''
+    Technically, rules allow for first RMD to occur by 1 Apr of the year following the one in which
+    the person turns 70.5. This can sometimes forestall when the first distribution must be taken
+    for people with birthdays in the first half of the year. The IRS rule wording is a little
+    unclear about whether a second withdrawal needs to occur in that same year. The simplifying
+    assumption used here is that the first RMD is taken the year the account holder age is 70 and
+    proceeds normally on a monthly basis thereafter.
+    '''
 
     # previous balance divisor
     d = [27.4,  # age 70
