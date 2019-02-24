@@ -93,7 +93,14 @@ def timeSeries(params, accounts):
                 a['payments'][idx] = -payment  # withdrawals are negative
                 incomes[idx] += payment
             elif a['type'] == 'expense':
-                expenses[idx] += a['delMonthly']
+                if ages[idx] >= a['minAge'] and ages[idx] <= a['maxAge']:  # active expense stream
+                    if ages[idx - 1] < a['minAge']:  # previous time step was outside of age bounds
+                        # first month of this expense stream, use initial value
+                        payment = a['delMonthly']
+                    else:  # ongoing expense, adjust previous month's payment based on compound rate
+                        payment = compoundInt(a['payments'][idx - 1], a['adjMonthly'])
+                    a['payments'][idx] = payment
+                    expenses[idx] += payment
 
         # accrue interest on accounts
         for a in accounts:
