@@ -4,29 +4,29 @@ import matplotlib.pyplot as plt
 
 def calculateFederalTaxes(income):
 
-    # based on 2018 single tax brackets
+    # based on 2019 single tax brackets
     tax = 0.0
-    if income > 0.0 and income <= 9525.0:
+    if income > 0.0 and income <= 9700.0:
         tax = 0.0 + 0.1 * (income - 0.0)
-    elif income > 9525.0 and income <= 38700.0:
-        tax = 952.5 + 0.12 * (income - 9525.0)
-    elif income > 38700.0 and income <= 82500.0:
-        tax = 4453.5 + 0.22 * (income - 38700.0)
-    elif income > 82500.0 and income <= 157500.0:
-        tax = 14089.5 + 0.24 * (income - 82500.0)
-    elif income > 157500.0 and income <= 200000.0:
-        tax = 32089.5 + 0.32 * (income - 157500.0)
-    elif income > 200000.0 and income <= 500000.0:
-        tax = 45689.5 + 0.35 * (income - 200000.0)
-    elif income > 500000.0:
-        tax = 150689.5 + 0.37 * (income - 500000.0)
+    elif income > 9700.0 and income <= 39475.0:
+        tax = 970.0 + 0.12 * (income - 9700.0)
+    elif income > 39475.0 and income <= 84200.0:
+        tax = 4543.0 + 0.22 * (income - 39475.0)
+    elif income > 84200.0 and income <= 160725.0:
+        tax = 14382.5 + 0.24 * (income - 84200.0)
+    elif income > 160725.0 and income <= 204100.0:
+        tax = 32748.5 + 0.32 * (income - 160725.0)
+    elif income > 204100.0 and income <= 510300.0:
+        tax = 46628.5 + 0.35 * (income - 204100.0)
+    elif income > 510300.0:
+        tax = 153798.5 + 0.37 * (income - 510300.0)
 
     return tax
 
 
 def calculateSSIRMAAs(income):
 
-    # based on 2018 single tax brackets
+    # based on 2019 single tax brackets
     IRMAA = 0.0
     if income > 85000.0 and income <= 107000.0:
         IRMAA = 12.0 * (54.1 + 12.4)
@@ -43,9 +43,9 @@ def calculateSSIRMAAs(income):
 
 
 # parameters
-baseIncome = 36000.0 + 0.85 * 31108.0 + 2430.0 + 1200.0
-  # Delta + SS + taxable savings dividends for the first three quarters + estimated fourth quarter
-convIncome = np.arange(0.0, 387500.0, 64.0)  # max is total IRA balance
+baseIncome = 36000.0 + 0.85 * 31987.2 + 4000.0
+  # Delta + SS + taxable savings dividends for the entire year
+convIncome = np.arange(0.0, 300932.0, 64.0)  # max is total IRA balance
 stateTaxRate = 0.0425
 
 # calculate the base tax, additional tax, and IRMAA penalties at each conversion value
