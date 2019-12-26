@@ -25,15 +25,16 @@ def calculateFederalTaxes(income):
 
 
 # parameters
-baseIncome = 5500.0 + 0.5 * 140085.55 + 0.5 * 1.05 * 140085.55 - 24400.0
-  # 2018 bonus + 1/2 year at current salary + 1/2 year at 5% raise salary - standard deduction
+baseIncome = 5500.0 + 75430.74 + 13840.43 + (12.0 / 26.0) * 151000.0 + 2539.91 - 24400.0
+  # 2018 bonus + QS ~1/2 salary + QS PTO payout + QSAI ~1/2 salary + capital gains and dividends (as of 12/13/19) - standard deduction
+#baseIncome = 5500.0 + 151000.0 + 60000.0 - 24400.0
 convIncome = np.arange(0.0, 270000.0, 64.0)  # max is total IRA balance
 stateTaxRate = 0.0425
 
 # calculate the base tax and additional tax at each conversion value
 baseTax = calculateFederalTaxes(baseIncome) + stateTaxRate * baseIncome
 convTax = np.empty_like(convIncome)
-for i in xrange(convIncome.size):
+for i in range(convIncome.size):
     convTax[i] = calculateFederalTaxes(baseIncome + convIncome[i]) + \
                  stateTaxRate * (baseIncome + convIncome[i]) - baseTax
 
