@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-def calculateFederalTaxes(income):
+def calculateFederalTaxes2019S(income):
 
     # based on 2019 single tax brackets
     tax = 0.0
@@ -24,7 +24,29 @@ def calculateFederalTaxes(income):
     return tax
 
 
-def calculateSSIRMAAs(income):
+def calculateFederalTaxes2019MFJ(income):
+
+    # based on 2019 MFJ tax brackets
+    tax = 0.0
+    if income > 0.0 and income <= 19050.0:
+        tax = 0.0 + 0.1 * (income - 0.0)
+    elif income > 19050.0 and income <= 77400.0:
+        tax = 1905.0 + 0.12 * (income - 19050.0)
+    elif income > 77400.0 and income <= 165000.0:
+        tax = 8907.0 + 0.22 * (income - 77400.0)
+    elif income > 165000.0 and income <= 315000.0:
+        tax = 28179.0 + 0.24 * (income - 165000.0)
+    elif income > 315000.0 and income <= 400000.0:
+        tax = 64179.0 + 0.32 * (income - 315000.0)
+    elif income > 400000.0 and income <= 600000.0:
+        tax = 91379.0 + 0.35 * (income - 400000.0)
+    elif income > 600000.0:
+        tax = 161379.0 + 0.37 * (income - 600000.0)
+
+    return tax
+
+
+def calculateSSIRMAAs2019S(income):
 
     # based on 2019 single tax brackets
     IRMAA = 0.0
@@ -42,20 +64,43 @@ def calculateSSIRMAAs(income):
     return IRMAA
 
 
+def noSSIRMAA(income):
+    return 0.0
+
+
 # parameters
-baseIncome = 36000.0 + 0.85 * 31987.2 + 4000.0
-  # Delta + SS + taxable savings dividends for the entire year
-convIncome = np.arange(0.0, 300932.0, 64.0)  # max is total IRA balance
 stateTaxRate = 0.0425
 
+## L: 2019
+#baseIncome = 36000.0 + 0.85 * 31987.2 + 4000.0
+#  # Delta + SS + taxable savings dividends for the entire year
+#federalDeduction = 12200.0
+#stateExemption = 4050.0
+#maxConversion = 300932.0
+#funcFederal = calculateFederalTaxes2019S
+#funcSSIRMAA = calculateSSIRMAAs2019S
+
+# S: 2019
+baseIncome = 5500.0 + 75430.74 + 13840.43 + (12.0 / 26.0) * 151000.0 + 2539.91
+  # 2018 bonus + QS ~1/2 salary + QS PTO payout + QSAI ~1/2 salary + capital gains and dividends (as of 12/13/19)
+federalDeduction = 24400.0
+stateExemption = 4 * 4050.0
+maxConversion = 270000.0
+funcFederal = calculateFederalTaxes2019MFJ
+funcSSIRMAA = noSSIRMAA
+
+
 # calculate the base tax, additional tax, and IRMAA penalties at each conversion value
-baseTax = calculateFederalTaxes(baseIncome) + stateTaxRate * baseIncome
+convIncome = np.arange(0.0, maxConversion, 64.0)
+baseTax = funcFederal(baseIncome - federalDeduction) + stateTaxRate * (baseIncome - stateExemption)
 convTax = np.empty_like(convIncome)
 IRMAAPen = np.empty_like(convIncome)
-for i in xrange(convIncome.size):
-    convTax[i] = calculateFederalTaxes(baseIncome + convIncome[i]) + \
-                 stateTaxRate * (baseIncome + convIncome[i]) - baseTax
-    IRMAAPen[i] = calculateSSIRMAAs(baseIncome + convIncome[i])
+for i in range(convIncome.size):
+    convTax[i] = funcFederal(baseIncome + convIncome[i] - federalDeduction) + \
+                 stateTaxRate * (baseIncome + convIncome[i] - stateExemption) - baseTax
+      # income taxes are based on AGI once reduced by the federal deduction and state exemption
+    IRMAAPen[i] = funcSSIRMAA(baseIncome + convIncome[i])
+      # IRMAA penalties are based on AGI directly (no adjustment for federal deductions)
 totalCost = convTax + IRMAAPen
 convEfficiency = totalCost / convIncome
 
