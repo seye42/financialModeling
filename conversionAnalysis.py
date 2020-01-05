@@ -2,48 +2,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-def calculateFederalTaxes2019S(income):
-
-    # based on 2019 single tax brackets
-    tax = 0.0
-    if income > 0.0 and income <= 9700.0:
-        tax = 0.0 + 0.1 * (income - 0.0)
-    elif income > 9700.0 and income <= 39475.0:
-        tax = 970.0 + 0.12 * (income - 9700.0)
-    elif income > 39475.0 and income <= 84200.0:
-        tax = 4543.0 + 0.22 * (income - 39475.0)
-    elif income > 84200.0 and income <= 160725.0:
-        tax = 14382.5 + 0.24 * (income - 84200.0)
-    elif income > 160725.0 and income <= 204100.0:
-        tax = 32748.5 + 0.32 * (income - 160725.0)
-    elif income > 204100.0 and income <= 510300.0:
-        tax = 46628.5 + 0.35 * (income - 204100.0)
-    elif income > 510300.0:
-        tax = 153798.5 + 0.37 * (income - 510300.0)
-
-    return tax
-
-
-def calculateFederalTaxes2019MFJ(income):
-
-    # based on 2019 MFJ tax brackets
-    tax = 0.0
-    if income > 0.0 and income <= 19050.0:
-        tax = 0.0 + 0.1 * (income - 0.0)
-    elif income > 19050.0 and income <= 77400.0:
-        tax = 1905.0 + 0.12 * (income - 19050.0)
-    elif income > 77400.0 and income <= 165000.0:
-        tax = 8907.0 + 0.22 * (income - 77400.0)
-    elif income > 165000.0 and income <= 315000.0:
-        tax = 28179.0 + 0.24 * (income - 165000.0)
-    elif income > 315000.0 and income <= 400000.0:
-        tax = 64179.0 + 0.32 * (income - 315000.0)
-    elif income > 400000.0 and income <= 600000.0:
-        tax = 91379.0 + 0.35 * (income - 400000.0)
-    elif income > 600000.0:
-        tax = 161379.0 + 0.37 * (income - 600000.0)
-
-    return tax
+import fedIncomeTax
 
 
 def calculateSSIRMAAs2019S(income):
@@ -64,39 +23,77 @@ def calculateSSIRMAAs2019S(income):
     return IRMAA
 
 
+def calculateSSIRMAAs2020S(income):
+
+    # based on 2019 single tax brackets
+    IRMAA = 0.0
+    if income > 87000.0 and income <= 109000.0:
+        IRMAA = 12.0 * (202.4 - 144.6 + 12.2)
+    elif income > 109000.0 and income <= 136000.0:
+        IRMAA = 12.0 * (289.2 - 144.6 + 31.5)
+    elif income > 136000.0 and income <= 163000.0:
+        IRMAA = 12.0 * (376.0 - 144.6 + 50.7)
+    elif income > 163000.0 and income <= 499999.99:
+        IRMAA = 12.0 * (462.7 - 144.6 + 70.0)
+    elif income > 499999.99:
+        IRMAA = 12.0 * (491.6 - 144.6 + 76.4)
+
+    return IRMAA
+
+
 def noSSIRMAA(income):
     return 0.0
 
 
 # parameters
+setID = 3
 stateTaxRate = 0.0425
-
-## L: 2019
-#baseIncome = 36000.0 + 0.85 * 31987.2 + 4000.0
-#  # Delta + SS + taxable savings dividends for the entire year
-#federalDeduction = 12200.0
-#stateExemption = 4050.0
-#maxConversion = 300932.0
-#funcFederal = calculateFederalTaxes2019S
-#funcSSIRMAA = calculateSSIRMAAs2019S
-
-# S: 2019
-baseIncome = 5500.0 + 75430.74 + 13840.43 + (12.0 / 26.0) * 151000.0 + 2539.91
-  # 2018 bonus + QS ~1/2 salary + QS PTO payout + QSAI ~1/2 salary + capital gains and dividends (as of 12/13/19)
-federalDeduction = 24400.0
-stateExemption = 4 * 4050.0
-maxConversion = 270000.0
-funcFederal = calculateFederalTaxes2019MFJ
-funcSSIRMAA = noSSIRMAA
+if setID == 0:
+    # KS: 2019
+    baseIncome = 5500.0 + 75430.74 + 13840.43 + (12.0 / 26.0) * 151e3 + 2539.91
+      # 2018 bonus + QS ~1/2 salary + QS PTO payout + QSAI ~1/2 salary + capital gains and dividends (as of 12/13/19)
+    federalDeduction = 24400.0
+    stateExemption = 4 * 4400.0
+    maxConversion = 270e3
+    fedBracket = fedIncomeTax.brackets2019MFJ
+    funcSSIRMAA = noSSIRMAA
+elif setID == 1:
+    # L: 2019
+    baseIncome = 36e3 + 0.85 * 31987.2 + 4e3
+      # Delta + SS + taxable savings dividends for the entire year
+    federalDeduction = 12200.0
+    stateExemption = 4400.0
+    maxConversion = 301e3
+    fedBracket = fedIncomeTax.brackets2019S
+    funcSSIRMAA = calculateSSIRMAAs2019S
+elif setID == 2:
+    # KS: 2020
+    baseIncome = 0.5 * 151e3 + 1.05 * 0.5 * 151e3 + 8e3 + 60e3 + 2e3
+      # 1H20 salary + 2H20 salary (with 5% raise) + annual bonus + retention bonus + estimated capital gains and dividends
+    federalDeduction = 24800.0
+    stateExemption = 4 * 4750.0
+    maxConversion = 140000.0
+    fedBracket = fedIncomeTax.brackets2020MFJ
+    funcSSIRMAA = noSSIRMAA
+elif setID == 3:
+    # L: 2020
+    baseIncome = 36e3 + 0.85 * 31987.2 + 4e3
+      # Delta + SS + taxable savings dividends for the entire year
+      # TODO: Update SS and savings components
+    federalDeduction = 12400.0
+    stateExemption = 4750.0
+    maxConversion = 250e3
+    fedBracket = fedIncomeTax.brackets2020S
+    funcSSIRMAA = calculateSSIRMAAs2020S
 
 
 # calculate the base tax, additional tax, and IRMAA penalties at each conversion value
-convIncome = np.arange(0.0, maxConversion, 64.0)
-baseTax = funcFederal(baseIncome - federalDeduction) + stateTaxRate * (baseIncome - stateExemption)
+convIncome = np.arange(0.01, maxConversion, 64.0)
+baseTax = fedIncomeTax.calculateTax(fedBracket, baseIncome - federalDeduction) + stateTaxRate * (baseIncome - stateExemption)
 convTax = np.empty_like(convIncome)
 IRMAAPen = np.empty_like(convIncome)
 for i in range(convIncome.size):
-    convTax[i] = funcFederal(baseIncome + convIncome[i] - federalDeduction) + \
+    convTax[i] = fedIncomeTax.calculateTax(fedBracket, baseIncome + convIncome[i] - federalDeduction) + \
                  stateTaxRate * (baseIncome + convIncome[i] - stateExemption) - baseTax
       # income taxes are based on AGI once reduced by the federal deduction and state exemption
     IRMAAPen[i] = funcSSIRMAA(baseIncome + convIncome[i])
@@ -113,20 +110,21 @@ plt.xlabel('converted balance ($k)')
 plt.ylabel('additional income tax ($k)')
 plt.grid()
 
-plt.figure()
-plt.plot(convIncome / 1000.0, IRMAAPen / 1000.0)
-plt.xlabel('converted balance ($k)')
-plt.ylabel('annual IRMAA penalties ($k)')
-plt.grid()
+if funcSSIRMAA is not noSSIRMAA:
+    plt.figure()
+    plt.plot(convIncome / 1000.0, IRMAAPen / 1000.0)
+    plt.xlabel('converted balance ($k)')
+    plt.ylabel('annual IRMAA penalties ($k)')
+    plt.grid()
+
+    plt.figure()
+    plt.plot(convIncome / 1000.0, totalCost / 1000.0)
+    plt.xlabel('converted balance ($k)')
+    plt.ylabel('total additional cost ($k)')
+    plt.grid()
 
 plt.figure()
-plt.plot(convIncome / 1000.0, totalCost / 1000.0)
-plt.xlabel('converted balance ($k)')
-plt.ylabel('total additional cost ($k)')
-plt.grid()
-
-plt.figure()
-plt.plot(convIncome / 1000.0, totalCost / convIncome)
+plt.plot(convIncome / 1000.0, convEfficiency)
 plt.xlabel('converted balance ($k)')
 plt.ylabel('cost per dollar converted')
 plt.grid()
