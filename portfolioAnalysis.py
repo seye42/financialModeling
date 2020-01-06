@@ -11,7 +11,7 @@ def parseTickerCSV(filename):
     # extract the ticker symbol
     path, name = os.path.split(filename)
     ticker = name.replace('.csv', '')
-    
+
     # parse the date and closing value time series data
     df = pd.read_csv(filename)
     dates = pd.to_datetime(df['Date'].to_numpy())
@@ -34,21 +34,32 @@ def parseAllTickerCSVs(filenames):
         initialDates.append(currDates[0])
         finalDates.append(currDates[-1])
         values.append(currValues)
+        print(currTicker + ' ' + str(currDates[0]))
 
     # determine the limiting date range across all tickers
     startDate = max(initialDates)
     stopDate = min(finalDates)
 
-    # trim the start of each time series to the common time and build up ticker dictionary
+    # trim the time span of each series and build up the ticker dictionary
     d = {}
-    for idx in range(len(tickers)):
-        startIdx = np.searchsorted(dates[idx], startDate)
-        stopIdx = np.searchsorted(dates[idx], stopDate)
-        if idx == 0:
-            t = dates[idx][startIdx:stopIdx]
-        d[tickers[idx]] = values[idx][startIdx:stopIdx]
+    for i in range(len(tickers)):
+        startIdx = np.searchsorted(dates[i], startDate)
+        stopIdx = np.searchsorted(dates[i], stopDate)
+        if i == 0:
+            t = dates[i][startIdx:stopIdx]
+        d[tickers[i]] = values[i][startIdx:stopIdx]
 
     return (t, d)
+
+
+def combineTickers(d, weights):
+    if sum(weights.values()) != 1.0:
+        raise ValueError('bad weights')
+    c = np.zeros_like(d[next(iter(d))])
+    for key in weights:
+        c += weights[key] * d[key]
+
+    return c
 
 
 files = ['/home/sean/Repos/financialModeling/data/VEMAX.csv',
@@ -58,42 +69,74 @@ files = ['/home/sean/Repos/financialModeling/data/VEMAX.csv',
          '/home/sean/Repos/financialModeling/data/VSMAX.csv',
          '/home/sean/Repos/financialModeling/data/VTMGX.csv',
          '/home/sean/Repos/financialModeling/data/VUSTX.csv',
-         #'/home/sean/Repos/financialModeling/data/VLXVX.csv']
-         #'/home/sean/Repos/financialModeling/data/FDEEX.csv']
-         '/home/sean/Repos/financialModeling/data/FFFHX.csv']
-weights = {'VEMAX': 0.05,
-           'VFIAX': 0.30,
-           'VGSLX': 0.10,
-           'VIPSX': 0.05,
-           'VSMAX': 0.25,
-           'VTMGX': 0.20,
-           'VUSTX': 0.05}
+         #'/home/sean/Repos/financialModeling/data/VLXVX.csv',
+         #'/home/sean/Repos/financialModeling/data/FDEEX.csv',
+         #'/home/sean/Repos/financialModeling/data/FFFHX.csv',
+         '/home/sean/Repos/financialModeling/data/VBTLX.csv',
+         '/home/sean/Repos/financialModeling/data/VTSAX.csv',
+         '/home/sean/Repos/financialModeling/data/VTIAX.csv']
 
-t, d = parseAllTickerCSVs(files)
+weightsEye = {'VEMAX': 0.05,
+              'VFIAX': 0.30,
+              'VGSLX': 0.10,
+              'VIPSX': 0.05,
+              'VSMAX': 0.25,
+              'VTMGX': 0.20,
+              'VUSTX': 0.05}
+weightsBogleYoung = {'VTSAX': 0.80,
+                     'VBTLX': 0.20}
+weightsBogleMiddle = {'VTSAX': 0.45,
+                     'VTIAX': 0.10,
+                     'VGSLX': 0.05,
+                     'VBTLX': 0.20,
+                     'VIPSX': 0.20}
+weightsBogleEarlyRet = {'VTSAX': 0.30,
+                       'VTIAX': 0.10,
+                       'VBTLX': 0.30,
+                       'VIPSX': 0.30}
+weightsBogleLateRet = {'VTSAX': 0.20,
+                       'VBTLX': 0.40,
+                       'VIPSX': 0.40}
+
+# parse the historical time series data
+t, dUnnorm = parseAllTickerCSVs(files)
+
+# normalize to starting dollars (not price per share)
+d = {}
+for key in dUnnorm:
+    d[key] = dUnnorm[key] / dUnnorm[key][0]
 
 # simulate custom portfolio
-d['Custom'] = np.zeros_like(d[next(iter(d))])
-for key in weights:
-    d['Custom'] += weights[key] * d[key]
+c= {}
+c['Eye'] = combineTickers(d, weightsEye)
+c['Bogleheads Young'] = combineTickers(d, weightsBogleYoung)
+c['Bogleheads Middle'] = combineTickers(d, weightsBogleMiddle)
+c['Bogleheads Early Retirement'] = combineTickers(d, weightsBogleEarlyRet)
+c['Bogleheads Late Retirement'] = combineTickers(d, weightsBogleLateRet)
 
 # plot closing values
 matplotlib.rcParams.update({'font.size': 20, 'figure.facecolor': 'w', 'lines.linewidth': 2})
 plt.figure()
-for key in d:
-    plt.plot(t, d[key], label=key)
+for key in dUnnorm:
+    plt.plot(t, dUnnorm[key], label=key)
 plt.xlabel('time')
 plt.ylabel('closing value ($)')
 plt.legend()
 plt.grid()
 
-# plot normalized values
-nd = {}
-for key in d:
-    nd[key] = d[key] / d[key][0]
-
+# plot normalized values of core funds
 plt.figure()
 for key in d.keys():
-    plt.plot(t, nd[key], label=key)
+    plt.plot(t, d[key], label=key)
+plt.xlabel('time')
+plt.ylabel('normalized value')
+plt.legend()
+plt.grid()
+
+# plot normalized values of weighted portfolios
+plt.figure()
+for key in c.keys():
+    plt.plot(t, c[key], label=key)
 plt.xlabel('time')
 plt.ylabel('normalized value')
 plt.legend()
