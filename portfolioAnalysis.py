@@ -39,6 +39,7 @@ def parseAllTickerCSVs(filenames):
     # determine the limiting date range across all tickers
     startDate = max(initialDates)
     stopDate = min(finalDates)
+    print('keeping ' + str(startDate) + ' to ' + str(stopDate))
 
     # trim the time span of each series and build up the ticker dictionary
     d = {}
@@ -74,7 +75,8 @@ files = ['/home/sean/Repos/financialModeling/data/VEMAX.csv',
          #'/home/sean/Repos/financialModeling/data/FFFHX.csv',
          '/home/sean/Repos/financialModeling/data/VBTLX.csv',
          '/home/sean/Repos/financialModeling/data/VTSAX.csv',
-         '/home/sean/Repos/financialModeling/data/VTIAX.csv']
+         '/home/sean/Repos/financialModeling/data/VTIAX.csv',
+         '/home/sean/Repos/financialModeling/data/VSBSX.csv']
 
 weightsEye = {'VEMAX': 0.05,
               'VFIAX': 0.30,
@@ -97,6 +99,36 @@ weightsBogleEarlyRet = {'VTSAX': 0.30,
 weightsBogleLateRet = {'VTSAX': 0.20,
                        'VBTLX': 0.40,
                        'VIPSX': 0.40}
+weightsSwedroeConvserv = {'VFIAX': 0.12,
+                          'VSMAX': 0.12,
+                          'VGSLX': 0.04,
+                          'VTMGX': 0.10,
+                          'VEMAX': 0.02,
+                          'VSBSX': 0.60}
+weightsSwedroeModerate = {'VFIAX': 0.18,
+                          'VSMAX': 0.18,
+                          'VGSLX': 0.06,
+                          'VTMGX': 0.15,
+                          'VEMAX': 0.03,
+                          'VSBSX': 0.40}
+weightsSwedroeModAggr = {'VFIAX': 0.24,
+                         'VSMAX': 0.24,
+                         'VGSLX': 0.08,
+                         'VTMGX': 0.20,
+                         'VEMAX': 0.04,
+                         'VSBSX': 0.20}
+weightsSwedroeHighAggr = {'VFIAX': 0.30,
+                          'VSMAX': 0.30,
+                          'VGSLX': 0.10,
+                          'VTMGX': 0.25,
+                          'VEMAX': 0.05,
+                          'VSBSX': 0.00}
+  # U.S. Stocks: Large and Large Value -> VFIAX
+  # U.S. Stocks: Small and Small Value -> VSMAX
+  # U.S. Stocks: Real Estate -> VGSLX
+  # Int'l Stocks: Large, Large Value, and Small -> VTMGX (VFSAX exists for small-cap, but has erratic/incomplete historical data)
+  # Int'l Stocks: Emerging Markets -> VEMAX
+  # U.S. Two-year -> VSBSX
 
 # parse the historical time series data
 t, dUnnorm = parseAllTickerCSVs(files)
@@ -106,13 +138,17 @@ d = {}
 for key in dUnnorm:
     d[key] = dUnnorm[key] / dUnnorm[key][0]
 
-# simulate custom portfolio
+# simulate custom portfolios
 c= {}
 c['Eye'] = combineTickers(d, weightsEye)
 c['Bogleheads Young'] = combineTickers(d, weightsBogleYoung)
 c['Bogleheads Middle'] = combineTickers(d, weightsBogleMiddle)
 c['Bogleheads Early Retirement'] = combineTickers(d, weightsBogleEarlyRet)
 c['Bogleheads Late Retirement'] = combineTickers(d, weightsBogleLateRet)
+c['Swedroe Conservative'] = combineTickers(d, weightsSwedroeConvserv)
+c['Swedroe Moderate'] = combineTickers(d, weightsSwedroeModerate)
+c['Swedroe Moderately Aggressive'] = combineTickers(d, weightsSwedroeModAggr)
+c['Swedroe Highly Aggressive'] = combineTickers(d, weightsSwedroeHighAggr)
 
 # plot closing values
 matplotlib.rcParams.update({'font.size': 20, 'figure.facecolor': 'w', 'lines.linewidth': 2})

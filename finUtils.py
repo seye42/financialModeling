@@ -1,5 +1,4 @@
 import math
-import matplotlib.pyplot as plt
 import numpy as np
 import plotUtils
 
@@ -254,6 +253,7 @@ def getRothContrib(rothIncome, earnedIncome, maxContrib, phaseOutBeg, phaseOutEn
 
 
 def getReqMinDistrib(age, P):
+    # TODO: Update based on revised law's increased age
     '''
     Get the required minimum distribution for a 401(k) according to IRS rules. Returned RMDs are
     normalized to monthly amounts.

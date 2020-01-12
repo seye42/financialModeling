@@ -72,17 +72,17 @@ elif setID == 2:
       # 1H20 salary + 2H20 salary (with 5% raise) + annual bonus + retention bonus + estimated capital gains and dividends
     federalDeduction = 24800.0
     stateExemption = 4 * 4750.0
-    maxConversion = 140000.0
+    maxConversion = 139306.78
     fedBracket = fedIncomeTax.brackets2020MFJ
     funcSSIRMAA = noSSIRMAA
 elif setID == 3:
     # L: 2020
-    baseIncome = 36e3 + 0.85 * 31987.2 + 4e3
+    baseIncome = 36e3 + 0.85 * 32496.0 + 4.2e3
       # Delta + SS + taxable savings dividends for the entire year
       # TODO: Update SS and savings components
     federalDeduction = 12400.0
     stateExemption = 4750.0
-    maxConversion = 250e3
+    maxConversion = 252762.57
     fedBracket = fedIncomeTax.brackets2020S
     funcSSIRMAA = calculateSSIRMAAs2020S
 

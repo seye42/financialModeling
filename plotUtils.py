@@ -34,7 +34,6 @@ def singlePlot(x, y, xLabel, yLabel):
 def multiPlot(x, ys, xLabel, yLabel, yNames):
     # initialize the plot
     plt.figure()
-    plt.hold(True)
 
     # determine automatic range scaling
     (norm, yLabel) = getAutoRange(np.amax(np.fabs(ys)), yLabel)
