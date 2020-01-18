@@ -3,6 +3,21 @@ import numpy as np
 import plotUtils
 
 
+def convAPRtoDay(rAnnual):
+    '''
+    Convert APR to equivalent daily rate
+    '''
+
+    # preserve sign of negative rates to indicate discount calculations later
+    sign = np.sign(rAnnual)
+    rAnnual = np.fabs(rAnnual)
+
+    # solve (1 + rAnnual) = (1 + rDaily) ** 365
+    rDaily = (1.0 + rAnnual) ** (1.0 / 365.0) - 1.0
+
+    return sign * rDaily
+
+
 def convAPRtoMon(rAnnual):
     '''
     Convert APR to equivalent monthly rate
