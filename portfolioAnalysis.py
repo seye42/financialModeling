@@ -71,6 +71,8 @@ files = ['/home/sean/Repos/financialModeling/data/VEMAX.csv',
          '/home/sean/Repos/financialModeling/data/VTMGX.csv',
          '/home/sean/Repos/financialModeling/data/VUSTX.csv',
          #'/home/sean/Repos/financialModeling/data/VLXVX.csv',
+         #'/home/sean/Repos/financialModeling/data/VTTSX.csv',
+         '/home/sean/Repos/financialModeling/data/VFFVX.csv',
          #'/home/sean/Repos/financialModeling/data/FDEEX.csv',
          #'/home/sean/Repos/financialModeling/data/FFFHX.csv',
          '/home/sean/Repos/financialModeling/data/VBTLX.csv',
@@ -88,14 +90,14 @@ weightsEye = {'VEMAX': 0.05,
 weightsBogleYoung = {'VTSAX': 0.80,
                      'VBTLX': 0.20}
 weightsBogleMiddle = {'VTSAX': 0.45,
-                     'VTIAX': 0.10,
-                     'VGSLX': 0.05,
-                     'VBTLX': 0.20,
-                     'VIPSX': 0.20}
+                      'VTIAX': 0.10,
+                      'VGSLX': 0.05,
+                      'VBTLX': 0.20,
+                      'VIPSX': 0.20}
 weightsBogleEarlyRet = {'VTSAX': 0.30,
-                       'VTIAX': 0.10,
-                       'VBTLX': 0.30,
-                       'VIPSX': 0.30}
+                        'VTIAX': 0.10,
+                        'VBTLX': 0.30,
+                        'VIPSX': 0.30}
 weightsBogleLateRet = {'VTSAX': 0.20,
                        'VBTLX': 0.40,
                        'VIPSX': 0.40}
@@ -149,6 +151,11 @@ c['Swedroe Conservative'] = combineTickers(d, weightsSwedroeConvserv)
 c['Swedroe Moderate'] = combineTickers(d, weightsSwedroeModerate)
 c['Swedroe Moderately Aggressive'] = combineTickers(d, weightsSwedroeModAggr)
 c['Swedroe Highly Aggressive'] = combineTickers(d, weightsSwedroeHighAggr)
+#c['Vanguard Target 2065'] = d['VLXVX']
+#c['Vanguard Target 2060'] = d['VTTSX']
+c['Vanguard Target 2055'] = d['VFFVX']
+#c['Fidelity Target 2055'] = d['FDEEX']
+#c['Fidelity Target 2050'] = d['FFFHX']
 
 # plot closing values
 matplotlib.rcParams.update({'font.size': 20, 'figure.facecolor': 'w', 'lines.linewidth': 2})
