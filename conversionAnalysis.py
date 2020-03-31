@@ -46,7 +46,7 @@ def noSSIRMAA(income):
 
 
 # parameters
-setID = 3
+setID = 2
 stateTaxRate = 0.0425
 if setID == 0:
     # KS: 2019
@@ -68,11 +68,11 @@ elif setID == 1:
     funcSSIRMAA = calculateSSIRMAAs2019S
 elif setID == 2:
     # KS: 2020
-    baseIncome = 0.5 * 151e3 + 1.05 * 0.5 * 151e3 + 8e3 + 60e3 + 2e3
-      # 1H20 salary + 2H20 salary (with 5% raise) + annual bonus + retention bonus + estimated capital gains and dividends
+    baseIncome = 0.5 * 151e3 + 1.03 * 0.5 * 151e3 + 8e3 + 60e3 + 1500.0
+      # 1H20 salary + 2H20 salary (with 3% raise) + annual bonus + retention bonus + estimated capital gains and dividends
     federalDeduction = 24800.0
     stateExemption = 4 * 4750.0
-    maxConversion = 139306.78
+    maxConversion = 139287.14
     fedBracket = fedIncomeTax.brackets2020MFJ
     funcSSIRMAA = noSSIRMAA
 elif setID == 3:
@@ -88,7 +88,7 @@ elif setID == 3:
 
 
 # calculate the base tax, additional tax, and IRMAA penalties at each conversion value
-convIncome = np.arange(0.01, maxConversion, 64.0)
+convIncome = np.linspace(0.01, maxConversion, 64)
 baseTax = fedIncomeTax.calculateTax(fedBracket, baseIncome - federalDeduction) + stateTaxRate * (baseIncome - stateExemption)
 convTax = np.empty_like(convIncome)
 IRMAAPen = np.empty_like(convIncome)
