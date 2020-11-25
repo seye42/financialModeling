@@ -7,7 +7,7 @@ import fedIncomeTax
 
 def calculateSSIRMAAs2019S(income):
 
-    # based on 2019 single tax brackets
+    # based on 2020 single status, combined Part B and Part D IRMAA costs above the standard premium amount
     IRMAA = 0.0
     if income > 85000.0 and income <= 107000.0:
         IRMAA = 12.0 * (54.1 + 12.4)
@@ -25,7 +25,7 @@ def calculateSSIRMAAs2019S(income):
 
 def calculateSSIRMAAs2020S(income):
 
-    # based on 2019 single tax brackets
+    # based on 2020 single status, combined Part B and Part D IRMAA costs above the standard premium amount
     IRMAA = 0.0
     if income > 87000.0 and income <= 109000.0:
         IRMAA = 12.0 * (202.4 - 144.6 + 12.2)
@@ -33,9 +33,28 @@ def calculateSSIRMAAs2020S(income):
         IRMAA = 12.0 * (289.2 - 144.6 + 31.5)
     elif income > 136000.0 and income <= 163000.0:
         IRMAA = 12.0 * (376.0 - 144.6 + 50.7)
-    elif income > 163000.0 and income <= 499999.99:
+    elif income > 163000.0 and income < 500000.0:
         IRMAA = 12.0 * (462.7 - 144.6 + 70.0)
-    elif income > 499999.99:
+    elif income >= 500000.0:
+        IRMAA = 12.0 * (491.6 - 144.6 + 76.4)
+
+    return IRMAA
+
+
+def calculateSSIRMAAs2020MFJ(income):
+
+    # based on 2020 married filing jointly status, combined Part B and Part D IRMAA costs above the standard premium
+    # amount
+    IRMAA = 0.0
+    if income > 174000.0 and income <= 218000.0:
+        IRMAA = 12.0 * (202.4 - 144.6 + 12.2)
+    elif income > 218000.0 and income <= 272000.0:
+        IRMAA = 12.0 * (289.2 - 144.6 + 31.5)
+    elif income > 272000.0 and income <= 326000.0:
+        IRMAA = 12.0 * (376.0 - 144.6 + 50.7)
+    elif income > 326000.0 and income < 750000.0:
+        IRMAA = 12.0 * (462.7 - 144.6 + 70.0)
+    elif income >= 750000.0:
         IRMAA = 12.0 * (491.6 - 144.6 + 76.4)
 
     return IRMAA
@@ -45,9 +64,25 @@ def noSSIRMAA(income):
     return 0.0
 
 
+def calculateMIIncomeTax(income):
+    return 0.0425 * income
+
+
+def calculateKSIncomeTax2020MFJ(income):
+
+    # based on 2020 Kansas resident, married, joint status
+    if income <= 30000.0:
+        tax = 0.031 * income
+    elif income > 30000.0 and income <= 60000.0:
+        tax =  930.0 + 0.0525 * (income - 30000.0)
+    elif income > 60000.0:
+        tax = 2505.0 + 0.057 * (income - 60000.0)
+
+    return tax
+
+
 # parameters
-setID = 2
-stateTaxRate = 0.0425
+setID = 4
 if setID == 0:
     # KS: 2019
     baseIncome = 5500.0 + 75430.74 + 13840.43 + (12.0 / 26.0) * 151e3 + 2539.91
@@ -56,7 +91,9 @@ if setID == 0:
     stateExemption = 4 * 4400.0
     maxConversion = 270e3
     fedBracket = fedIncomeTax.brackets2019MFJ
+    funcState = calculateMIIncomeTax
     funcSSIRMAA = noSSIRMAA
+    scaleSSIRMAA = 0.0
 elif setID == 1:
     # L: 2019
     baseIncome = 36e3 + 0.85 * 31987.2 + 4e3
@@ -65,7 +102,9 @@ elif setID == 1:
     stateExemption = 4400.0
     maxConversion = 301e3
     fedBracket = fedIncomeTax.brackets2019S
+    funcState = calculateMIIncomeTax
     funcSSIRMAA = calculateSSIRMAAs2019S
+    scaleSSIRMAA = 1.0
 elif setID == 2:
     # KS: 2020
     baseIncome = 0.5 * 151e3 + 1.03 * 0.5 * 151e3 + 8e3 + 60e3 + 1500.0
@@ -74,7 +113,9 @@ elif setID == 2:
     stateExemption = 4 * 4750.0
     maxConversion = 139287.14
     fedBracket = fedIncomeTax.brackets2020MFJ
+    funcState = calculateMIIncomeTax
     funcSSIRMAA = noSSIRMAA
+    scaleSSIRMAA = 0.0
 elif setID == 3:
     # L: 2020
     baseIncome = 36e3 + 0.85 * 32496.0 + 4.2e3
@@ -84,20 +125,37 @@ elif setID == 3:
     stateExemption = 4750.0
     maxConversion = 252762.57
     fedBracket = fedIncomeTax.brackets2020S
+    funcState = calculateMIIncomeTax
     funcSSIRMAA = calculateSSIRMAAs2020S
+    scaleSSIRMAA = 1.0
+elif setID == 4:
+    # CS: 2020
+    baseIncome = 150000.0
+    federalDeduction = 12400.0
+    stateExemption = 2250.0 * 2 + 8200.0
+      # 2 exemptions plus standard deduction (with adjustment for C being over 65)
+    maxConversion = 120000.0
+    fedBracket = fedIncomeTax.brackets2020MFJ
+    funcState = calculateKSIncomeTax2020MFJ
+    funcSSIRMAA = calculateSSIRMAAs2020MFJ
+    scaleSSIRMAA = 1.0 + 0.75
+      # full year for C, but only 2Q-4Q of 2022 for S
 
 
 # calculate the base tax, additional tax, and IRMAA penalties at each conversion value
 convIncome = np.linspace(0.01, maxConversion, 64)
-baseTax = fedIncomeTax.calculateTax(fedBracket, baseIncome - federalDeduction) + stateTaxRate * (baseIncome - stateExemption)
-convTax = np.empty_like(convIncome)
+baseState = funcState(baseIncome - stateExemption)
+baseFed = fedIncomeTax.calculateTax(fedBracket, baseIncome - federalDeduction)
+stateTax = np.empty_like(convIncome)
+fedTax   = np.empty_like(convIncome)
 IRMAAPen = np.empty_like(convIncome)
 for i in range(convIncome.size):
-    convTax[i] = fedIncomeTax.calculateTax(fedBracket, baseIncome + convIncome[i] - federalDeduction) + \
-                 stateTaxRate * (baseIncome + convIncome[i] - stateExemption) - baseTax
+    stateTax[i] = funcState(baseIncome + convIncome[i] - stateExemption) - baseState
+    fedTax[i] = fedIncomeTax.calculateTax(fedBracket, baseIncome + convIncome[i] - federalDeduction) - baseFed
       # income taxes are based on AGI once reduced by the federal deduction and state exemption
-    IRMAAPen[i] = funcSSIRMAA(baseIncome + convIncome[i])
+    IRMAAPen[i] = scaleSSIRMAA * funcSSIRMAA(baseIncome + convIncome[i])
       # IRMAA penalties are based on AGI directly (no adjustment for federal deductions)
+convTax = stateTax + fedTax
 totalCost = convTax + IRMAAPen
 convEfficiency = totalCost / convIncome
 
@@ -105,9 +163,12 @@ convEfficiency = totalCost / convIncome
 matplotlib.rcParams.update({'font.size': 20, 'figure.facecolor': 'w', 'lines.linewidth': 2})
 
 plt.figure()
-plt.plot(convIncome / 1000.0, convTax / 1000.0)
+plt.plot(convIncome / 1000.0, stateTax / 1000.0, label='state')
+plt.plot(convIncome / 1000.0, fedTax   / 1000.0, label='federal')
+plt.plot(convIncome / 1000.0, convTax  / 1000.0, label='total')
 plt.xlabel('converted balance ($k)')
 plt.ylabel('additional income tax ($k)')
+plt.legend()
 plt.grid()
 
 if funcSSIRMAA is not noSSIRMAA:
