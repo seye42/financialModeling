@@ -51,7 +51,7 @@ def timeSeries(params, accounts):
     ages = np.arange(params['startAge'], params['stopAge'], 1.0 / 12)
         # in years, but always with monthly steps
 
-    # figure out where Dec falls in the age array (for IRA RMDs)
+    # figure out where Dec falls in the age array (for IRA and 401(k) RMDs)
     fracMo, _ = math.modf(params['startAge'])
     nextDecIdx = 12 - (params['birthMonth'] + int(round(fracMo * 12.0))) % 12
         # month for integer ages plus fractional year (converted to month indices)
@@ -70,8 +70,9 @@ def timeSeries(params, accounts):
 
             # initialize time series
             a['payments'] = np.zeros_like(ages)
-            a['payments'][0] = a['delMonthly']
-        elif 'intAPR' in a:  # loan, savings, Roth, or IRA type
+            if ages[0] >= a['minAge'] and ages[0] <= a['maxAge']:  # active income stream
+                a['payments'][0] = a['delMonthly']
+        elif 'intAPR' in a:  # loan, savings, IRA, 401(k), Roth, Roth 401(k), or HSA type
             # convert APR to monthly rate
             a['intMonthly'] = convAPRtoMon(a['intAPR'])
 
@@ -81,8 +82,8 @@ def timeSeries(params, accounts):
             a['balances'][0] = a['initBalance']
             netWorth[0] += a['initBalance']
 
-            # initialize previous Dec's balance for RMD calculations on IRAs
-            if a['type'] == 'IRA':
+            # initialize previous Dec's balance for RMD calculations on IRAs and 401(k)s
+            if a['type'] in ['IRA', '401(k)']:
                 a['prevDecBalance'] = a['initBalance']
                     # best estimate for now, will be updated below
 
@@ -102,7 +103,7 @@ def timeSeries(params, accounts):
                     incomes[idx] += payment
                 else:  # age is outside of bounds, inactive income stream
                     a['payments'][idx] = 0.0
-            elif a['type'] == 'IRA':
+            elif a['type'] in ['IRA', '401(k)']:
                 payment = getReqMinDistrib(ages[idx], a['prevDecBalance'])
                 a['payments'][idx] = -payment  # withdrawals are negative
                 incomes[idx] += payment
@@ -121,11 +122,19 @@ def timeSeries(params, accounts):
             if 'intMonthly' in a:  # interest-bearing account
                 a['balances'][idx] = compoundInt(a['balances'][idx - 1], a['intMonthly'])
 
+        # add contributions to 401(k), Roth 401(k), and HSA type accounts
+        for a in accounts:
+            if a['type'] in ['401(k)', 'Roth 401(k)', 'HSA']:
+                if ages[idx] >= a['minAge'] and ages[idx] <= a['maxAge']:  # active contributions while working
+                  # TODO: add another check for when RMDs kick in (regardless of maxAge)?
+                    a['payments'][idx] = a['delMonthly']
+                    a['balances'][idx] += a['delMonthly']
+
         # update end-of-Dec tracking for IRA RMDs
         if idx == nextDecIdx:  # it's Dec, save balances (with new interest) for use next year
             nextDecIdx += 12
             for a in accounts:
-                if a['type'] == 'IRA':
+                if a['type'] in ['IRA', '401(k)']:
                     a['prevDecBalance'] = a['balances'][idx]
 
         # determine net cash flow this month
@@ -184,19 +193,19 @@ def timeSeries(params, accounts):
             # withdraw from IRA accounts
             if avail < 0.0:
                 for a in accounts:
-                    if a['type'] == 'IRA' and a['balances'][idx] > 0.0:
-                        # IRA with an available balance
+                    if a['type'] in ['IRA', '401(k)'] and a['balances'][idx] > 0.0:
+                        # IRA or 401(k) with an available balance
                         withdraw = min([-avail, a['balances'][idx]])
                         a['balances'][idx] -= withdraw
                         a['payments'][idx] -= withdraw
                         avail += withdraw  # avail is negative
                         incomes[idx] += withdraw
-                            # IRA distributions are normal income for tax purposes
+                            # IRA and 401(k) distributions are normal income for tax purposes
 
             # withdraw from Roth accounts
             if avail < 0.0:
                 for a in accounts:
-                    if a['type'] == 'Roth' and a['balances'][idx] > 0.0:
+                    if a['type'] in ['Roth', 'Roth 401(k)'] and a['balances'][idx] > 0.0:
                         # Roth with an available balance
                         withdraw = min([-avail, a['balances'][idx]])
                         a['balances'][idx] -= withdraw
@@ -209,7 +218,7 @@ def timeSeries(params, accounts):
                 netWorth[idx] += a['balances'][idx]
 
     # plot monthly rates
-    plotUtils.multiPlot(ages, [incomes, expenses, discret], 'age (yr)', 'rate (2018 $/mo)',
+    plotUtils.multiPlot(ages, [incomes, expenses, discret], 'age (yr)', 'rate (2020 $/mo)',
                         ['total income', 'total expenses', 'discretionary'])
 
     # plot loan class payments and account balances
@@ -224,8 +233,8 @@ def timeSeries(params, accounts):
             payments.append(a['payments'])
             names.append(a['label'])
     if doPlot:
-        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (2018 $)', names)
-        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2018 $/mo)',names)
+        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (2020 $)', names)
+        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2020 $/mo)',names)
 
     # plot savings class account balances
     balances = []
@@ -233,17 +242,17 @@ def timeSeries(params, accounts):
     names = []
     doPlot = False
     for a in accounts:
-        if a['type'] in ['savings', 'Roth', 'IRA']:
+        if a['type'] in ['savings', '401(k)', 'IRA', 'Roth 401(k)', 'Roth', 'HSA']:
             doPlot = True
             balances.append(a['balances'])
             payments.append(a['payments'])
             names.append(a['label'])
     if doPlot:
-        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (2018 $)', names)
-        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2018 $/mo)', names)
+        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (2020 $)', names)
+        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2020 $/mo)', names)
 
     # plot net worth
-    plotUtils.singlePlot(ages, netWorth, 'age (yr)', 'net worth (2018 $)')
+    plotUtils.singlePlot(ages, netWorth, 'age (yr)', 'net worth (2020 $)')
 
     return accounts
 
