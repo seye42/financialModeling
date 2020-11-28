@@ -4,6 +4,7 @@ params = {}
 params['startAge'] = 9
 params['stopAge']  = 22
 params['birthMonth'] = 12
+params['currencyYear'] = '2020'
 
 # interest rates
 APRInflation = 0.0322  # 1913-2014 US CPI average

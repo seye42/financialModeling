@@ -6,6 +6,7 @@ params = {}
 params['startAge'] = 39.5833
 params['stopAge']  = 90.0
 params['birthMonth'] = 5
+params['currencyYear'] = '2020'
 retirementAge = 60.0
 
 # interest rates

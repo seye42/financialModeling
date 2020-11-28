@@ -218,7 +218,7 @@ def timeSeries(params, accounts):
                 netWorth[idx] += a['balances'][idx]
 
     # plot monthly rates
-    plotUtils.multiPlot(ages, [incomes, expenses, discret], 'age (yr)', 'rate (2020 $/mo)',
+    plotUtils.multiPlot(ages, [incomes, expenses, discret], 'age (yr)', 'rate (' + params['currencyYear'] + ' $/mo)',
                         ['total income', 'total expenses', 'discretionary'])
 
     # plot loan class payments and account balances
@@ -233,8 +233,8 @@ def timeSeries(params, accounts):
             payments.append(a['payments'])
             names.append(a['label'])
     if doPlot:
-        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (2020 $)', names)
-        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2020 $/mo)',names)
+        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (' + params['currencyYear'] + ' $)', names)
+        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (' + params['currencyYear'] + ' $/mo)',names)
 
     # plot savings class account balances
     balances = []
@@ -248,11 +248,11 @@ def timeSeries(params, accounts):
             payments.append(a['payments'])
             names.append(a['label'])
     if doPlot:
-        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (2020 $)', names)
-        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (2020 $/mo)', names)
+        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (' + params['currencyYear'] + ' $)', names)
+        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (' + params['currencyYear'] + ' $/mo)', names)
 
     # plot net worth
-    plotUtils.singlePlot(ages, netWorth, 'age (yr)', 'net worth (2020 $)')
+    plotUtils.singlePlot(ages, netWorth, 'age (yr)', 'net worth (' + params['currencyYear'] + ' $)')
 
     return accounts
 
@@ -277,24 +277,25 @@ def getRothContrib(rothIncome, earnedIncome, maxContrib, phaseOutBeg, phaseOutEn
 
 
 def getReqMinDistrib(age, P):
-    # TODO: Update based on revised law's increased age
     '''
-    Get the required minimum distribution for a 401(k) according to IRS rules. Returned RMDs are
-    normalized to monthly amounts.
+    Get the required minimum distribution for an IRA or 401(k) according to IRS rules. Returned RMDs are normalized to
+    monthly amounts.
     - age is the account holder's current age in years
     - P is the account balance/principal as of 31 Dec the previous year
 
-    Calculations are based on IRS publication 590-B, Table III from 2017
+    Calculations are based on IRS publication 590-B, Table III from 2019
     '''
 
     '''
-    Technically, rules allow for first RMD to occur by 1 Apr of the year following the one in which
-    the person turns 70.5. This can sometimes forestall when the first distribution must be taken
-    for people with birthdays in the first half of the year. The IRS rule wording is a little
-    unclear about whether a second withdrawal needs to occur in that same year. The simplifying
-    assumption used here is that the first RMD is taken the year the account holder age is 70 and
-    proceeds normally on a monthly basis thereafter.
+    Technically, rules allow for first RMD to occur by 1 Apr of the year following the one in which the person turns
+    70.5. This can sometimes forestall when the first distribution must be taken for people with birthdays in the
+    first half of the year. The IRS rule wording is a little unclear about whether a second withdrawal needs to occur
+    in that same year. The simplifying assumption used here is that the first RMD is taken the year the account holder
+    age is 70 and proceeds normally on a monthly basis thereafter.
     '''
+
+    # TODO: Update based on SECURE Act of 2019 increased age of 72
+    print('getReqMinDistrib() not updated for SECURE Act of 2019')
 
     # previous balance divisor
     d = [27.4,  # age 70
@@ -307,7 +308,7 @@ def getReqMinDistrib(age, P):
          21.2,
          20.3,
          19.5,
-         18.7,
+         18.7,  # age 80
          17.9,
          17.1,
          16.3,
@@ -317,7 +318,7 @@ def getReqMinDistrib(age, P):
          13.4,
          12.7,
          12.0,
-         11.4,
+         11.4,  # age 90
          10.8,
          10.2,
          9.6,
@@ -327,7 +328,7 @@ def getReqMinDistrib(age, P):
          7.6,
          7.1,
          6.7,
-         6.3,
+         6.3,  # age 100
          5.9,
          5.5,
          5.2,
@@ -337,13 +338,13 @@ def getReqMinDistrib(age, P):
          3.9,
          3.7,
          3.4,
-         3.1,
+         3.1,  # age 110
          2.9,
          2.6,
          2.4,
          2.1,
          1.9]  # 115 and over
-      # from IRS publication 590-B, Table III, 2017
+      # from IRS publication 590-B, Table III, 2019
 
     # calculate the required minimum distribution
     if age < 70.0:
