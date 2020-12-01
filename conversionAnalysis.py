@@ -89,6 +89,7 @@ if setID == 0:
       # 2018 bonus + QS ~1/2 salary + QS PTO payout + QSAI ~1/2 salary + capital gains and dividends (as of 12/13/19)
     federalDeduction = 24400.0
     stateExemption = 4 * 4400.0
+    stateModification = 0.0
     maxConversion = 270e3
     fedBracket = fedIncomeTax.brackets2019MFJ
     funcState = calculateMIIncomeTax
@@ -100,6 +101,7 @@ elif setID == 1:
       # Delta + SS + taxable savings dividends for the entire year
     federalDeduction = 12200.0
     stateExemption = 4400.0
+    stateModification = 0.0
     maxConversion = 301e3
     fedBracket = fedIncomeTax.brackets2019S
     funcState = calculateMIIncomeTax
@@ -111,6 +113,7 @@ elif setID == 2:
       # 1H20 salary + 2H20 salary (with 3% raise) + annual bonus + retention bonus + estimated capital gains and dividends
     federalDeduction = 24800.0
     stateExemption = 4 * 4750.0
+    stateModification = 0.0
     maxConversion = 139287.14
     fedBracket = fedIncomeTax.brackets2020MFJ
     funcState = calculateMIIncomeTax
@@ -123,6 +126,7 @@ elif setID == 3:
       # TODO: Update SS and savings components
     federalDeduction = 12400.0
     stateExemption = 4750.0
+    stateModification = 0.0
     maxConversion = 252762.57
     fedBracket = fedIncomeTax.brackets2020S
     funcState = calculateMIIncomeTax
@@ -130,10 +134,10 @@ elif setID == 3:
     scaleSSIRMAA = 1.0
 elif setID == 4:
     # CS: 2020
-    baseIncome = 150000.0
-    federalDeduction = 12400.0
-    stateExemption = 2250.0 * 2 + 8200.0
-      # 2 exemptions plus standard deduction (with adjustment for C being over 65)
+    baseIncome = 97412.0  # 2019 federal AGI before IRA conversion income
+    federalDeduction = 24800.0 + 1300.0  # standard MFJ with one "over 65 or blind" adjustment
+    stateExemption = 2250.0 * 2 + 8200.0  # 2 exemptions plus standard MFJ deduction with one "over 65" adjustment
+    stateModification = 5159.0  # 2019 contributions to KPERS
     maxConversion = 120000.0
     fedBracket = fedIncomeTax.brackets2020MFJ
     funcState = calculateKSIncomeTax2020MFJ
@@ -144,13 +148,13 @@ elif setID == 4:
 
 # calculate the base tax, additional tax, and IRMAA penalties at each conversion value
 convIncome = np.linspace(0.01, maxConversion, 64)
-baseState = funcState(baseIncome - stateExemption)
+baseState = funcState(baseIncome + stateModification - stateExemption)
 baseFed = fedIncomeTax.calculateTax(fedBracket, baseIncome - federalDeduction)
 stateTax = np.empty_like(convIncome)
 fedTax   = np.empty_like(convIncome)
 IRMAAPen = np.empty_like(convIncome)
 for i in range(convIncome.size):
-    stateTax[i] = funcState(baseIncome + convIncome[i] - stateExemption) - baseState
+    stateTax[i] = funcState(baseIncome + stateModification + convIncome[i] - stateExemption) - baseState
     fedTax[i] = fedIncomeTax.calculateTax(fedBracket, baseIncome + convIncome[i] - federalDeduction) - baseFed
       # income taxes are based on AGI once reduced by the federal deduction and state exemption
     IRMAAPen[i] = scaleSSIRMAA * funcSSIRMAA(baseIncome + convIncome[i])
