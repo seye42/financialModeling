@@ -4,7 +4,7 @@ params = {}
 
 # ages
 params['startAge'] = 39.5833
-params['stopAge']  = 90.0
+params['stopAge']  = 100.0
 params['birthMonth'] = 5
 params['currencyYear'] = '2020'
 retirementAge = 60.0
@@ -15,87 +15,93 @@ APRInvest    = 0.0962  # S&P 25-year annualized (1989-2014)
 
 # accounts
 accounts = [\
-{'label'         : 'salary',
- 'type'          : 'income',
+{'label'         : 'QSAI salary and bonus',
+ 'hasIncome'     : True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : 4043 * 26.0 / 12.0,
-   # Nov 2020 paystub with adjustment to spread Roth 401(k) contributions over full year
- 'adjAPR'        : APRInflation},
+ 'delMonthly'    : (4043 * 26.0 + 4500.0) / 12.0,
+   # Nov 2020 paystub with estimated annual bonus and adjustment to spread Roth 401(k) contributions over full year
+ 'earned'        : True},
 
 {'label'         : 'QSAI retention bonus',
- 'type'          : 'income',
+ 'hasIncome'     : True,
  'minAge'        : 40.1,
  'maxAge'        : 40.2,
  'delMonthly'    : 45000.0,  # $60,000 paid on ~7/1/2021 after tax withholdings
- 'adjAPR'        : 0.0},
+ 'earned'        : True},
 
 {'label'         : 'Social Security (Kirstin)',
- 'type'          : 'income',
- 'minAge'        : 62.0,
+ 'hasIncome'     : True,
+ 'minAge'        : 70.0,#62.0,
  'maxAge'        : np.Inf,
- 'delMonthly'    : 396.0,  # 566.0 for age 67, 701.0 for age 70
+ 'delMonthly'    : 701.0,#396.0,  # 566.0 for age 67, 701.0 for age 70
    # from SSA estimate retrieved in Nov 2020, DOES NOT INCLUDE BENEFITS FOR SPOUSE (SO VERY CONSERVATIVE ESTIMATE)
- 'adjAPR'        : APRInflation},
+ 'earned'        : False},
 
 {'label'         : 'Social Security (Sean)',
- 'type'          : 'income',
- 'minAge'        : 62.0,
+ 'hasIncome'     : True,
+ 'minAge'        : 70.0,#62.0,
  'maxAge'        : np.Inf,
- 'delMonthly'    : 2284.0,  # 3321.0 for age 67, 4160.0 for age 70
+ 'delMonthly'    : 4160.0,#2284.0,  # 3321.0 for age 67, 4160.0 for age 70
    # from SSA estimate retrieved in Nov 2020
- 'adjAPR'        : APRInflation},
+ 'earned'        : False},
 
 {'label'         : 'household budget',
- 'type'          : 'expense',
+ 'hasExpenses'   : True,
  'minAge'        : 0.0,
- 'maxAge'        : params['stopAge'],
- 'delMonthly'    : -4100.0, # $2700 Citi + $100 REI + $800 property taxes + $500 misc.
- 'adjAPR'        : APRInflation},
+ 'maxAge'        : np.Inf,
+ 'delMonthly'    : -4100.0}, # $2700 Citi + $100 REI + $800 property taxes + $500 misc.
 
 {'label'         : 'taxable savings',
- 'type'          : 'savings',
+ 'hasSavings'    : True,
+ 'hasBalance'    : True,
  'initBalance'   : 60455.0,  # as of startAge
  'intAPR'        : 0.0349 - APRInflation},  # inflation-adjusted returns
 
 {'label'         : 'Roth IRA (Kirstin)',
- 'type'          : 'Roth',
+ 'hasBalance'    : True,
  'initBalance'   : 136800.0,
- 'intAPR'        : 0.090195 - APRInflation,
+ 'intAPR'        : 0.090195 - APRInflation,  # inflation-adjusted returns
+ 'hasContributionLimits': True,
  'maxContrib'    : 6000.0 / 12,  # annual IRS maximum, normalized to monthly
- 'phaseOutBeg'   : np.Inf,  # AGI where phase-out begins
- 'phaseOutEnd'   : np.Inf},  # AGI where inelibible for contributions
+ 'phaseOutBegAGI': np.Inf,  # AGI where phase-out begins
+ 'phaseOutEndAGI': np.Inf},  # AGI where inelibible for contributions
     # based on 2018 rules for married filing jointly
 
 {'label'         : 'Roth IRA (Sean)',
- 'type'          : 'Roth',
+ 'hasBalance'    : True,
  'initBalance'   : 512508.0,
- 'intAPR'        : 0.058513 - APRInflation,
+ 'intAPR'        : 0.058513 - APRInflation,  # inflation-adjusted returns
+ 'hasContributionLimits': True,
  'maxContrib'    : 6000.0 / 12,
- 'phaseOutBeg'   : np.Inf,  # AGI where phase-out begins
- 'phaseOutEnd'   : np.Inf},  # AGI where inelibible for contribution
+ 'phaseOutBegAGI': np.Inf,  # AGI where phase-out begins
+ 'phaseOutEndAGI': np.Inf},  # AGI where inelibible for contribution
     # based on 2018 rules for married filing jointly
 
 {'label'         : 'Roth 401(k) (Sean)',
- 'type'          : 'Roth 401(k)',
+ 'hasBalance'    : True,
  'initBalance'   : 15798.0,
- 'intAPR'        : 0.0551 - APRInflation,
+ 'intAPR'        : 0.0551 - APRInflation,  # inflation-adjusted returns
+ 'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
  'delMonthly'    : 19500.0 / 12},
 
 {'label'         : '401(k) (Sean)',
- 'type'          : '401(k)',
+ 'hasBalance'    : True,
  'initBalance'   : 2844.0,
- 'intAPR'        : 0.0551 - APRInflation,
+ 'intAPR'        : 0.0551 - APRInflation,  # inflation-adjusted returns
+ 'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : 6885.0 / 12},  # 4.5% of salary
+ 'delMonthly'    : 6885.0 / 12,  # 4.5% of salary
+ 'hasRMDs'       : True},
 
 {'label'         : 'HSA',
- 'type'          : 'HSA',
+ 'hasBalance'    : True,
  'initBalance'   : 8914.0,
- 'intAPR'        : 0.0491 - APRInflation,
+ 'intAPR'        : 0.0491 - APRInflation,  # inflation-adjusted returns
+ 'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
  'delMonthly'    : 7200.0 / 12}

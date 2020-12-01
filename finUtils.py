@@ -51,224 +51,194 @@ def timeSeries(params, accounts):
     ages = np.arange(params['startAge'], params['stopAge'], 1.0 / 12)
         # in years, but always with monthly steps
 
-    # figure out where Dec falls in the age array (for IRA and 401(k) RMDs)
+    # figure out where December falls in the age array (for RMD calculations)
     fracMo, _ = math.modf(params['startAge'])
     nextDecIdx = 12 - (params['birthMonth'] + int(round(fracMo * 12.0))) % 12
         # month for integer ages plus fractional year (converted to month indices)
 
     # initialize aggregate time series arrays
-    incomes  = np.zeros_like(ages)
-    expenses = np.zeros_like(ages)
-    discret  = np.zeros_like(ages)
-    netWorth = np.zeros_like(ages)
+    earnedIncomes   = np.zeros_like(ages)
+    totalIncomes    = np.zeros_like(ages)
+    expenses        = np.zeros_like(ages)
+    discretionaries = np.zeros_like(ages)
+    netWorths       = np.zeros_like(ages)
 
     # initialize accounts
     for a in accounts:
-        if 'adjAPR' in a:  # income type
-            # convert APR to monthly rate
-            a['adjMonthly'] = convAPRtoMon(a['adjAPR'])
-
-            # initialize time series
-            a['payments'] = np.zeros_like(ages)
-            if ages[0] >= a['minAge'] and ages[0] <= a['maxAge']:  # active income stream
-                a['payments'][0] = a['delMonthly']
-        elif 'intAPR' in a:  # loan, savings, IRA, 401(k), Roth, Roth 401(k), or HSA type
+        # setup balances time series
+        if 'hasBalance' in a:
             # convert APR to monthly rate
             a['intMonthly'] = convAPRtoMon(a['intAPR'])
 
-            # initialize time series and net worth
-            a['payments'] = np.zeros_like(ages)
+            # setup balances and adjust net worth
             a['balances'] = np.zeros_like(ages)
             a['balances'][0] = a['initBalance']
-            netWorth[0] += a['initBalance']
+            netWorths[0] += a['initBalance']
 
-            # initialize previous Dec's balance for RMD calculations on IRAs and 401(k)s
-            if a['type'] in ['IRA', '401(k)']:
-                a['prevDecBalance'] = a['initBalance']
-                    # best estimate for now, will be updated below
+        # setup payments time series
+        a['payments'] = np.zeros_like(ages)
+
+        # setup previous December's balance for later RMD calculations
+        if 'hasRMDs' in a:
+             a['prevDecBalance'] = a['initBalance']  # best estimate for now, will be updated below
 
     # run time series calculations
     for idx in range(1, len(ages)):  # skip the first age since it's just initial value data
-        # get total income and expenses for this period
+        # accrue interest
         for a in accounts:
-            if a['type'] == 'income':
-                if ages[idx] >= a['minAge'] and ages[idx] <= a['maxAge']:  # active income stream
-                    if ages[idx - 1] < a['minAge']:  # previous time step was outside of age bounds
-                        # first month of this income stream, use initial value
-                        payment = a['delMonthly']
-                            # TODO: think about inflation adjusting income streams (e.g. SS)
-                    else:  # ongoing income, adjust previous month's payment based on compound rate
-                        payment = compoundInt(a['payments'][idx - 1], a['adjMonthly'])
-                    a['payments'][idx] = payment
-                    incomes[idx] += payment
-                else:  # age is outside of bounds, inactive income stream
-                    a['payments'][idx] = 0.0
-            elif a['type'] in ['IRA', '401(k)']:
-                payment = getReqMinDistrib(ages[idx], a['prevDecBalance'])
-                a['payments'][idx] = -payment  # withdrawals are negative
-                incomes[idx] += payment
-            elif a['type'] == 'expense':
-                if ages[idx] >= a['minAge'] and ages[idx] <= a['maxAge']:  # active expense stream
-                    if ages[idx - 1] < a['minAge']:  # previous time step was outside of age bounds
-                        # first month of this expense stream, use initial value
-                        payment = a['delMonthly']
-                    else:  # ongoing expense, adjust previous month's payment based on compound rate
-                        payment = compoundInt(a['payments'][idx - 1], a['adjMonthly'])
-                    a['payments'][idx] = payment
-                    expenses[idx] += payment
-
-        # accrue interest on accounts
-        for a in accounts:
-            if 'intMonthly' in a:  # interest-bearing account
+            if 'hasBalance' in a:  # interest bearing account
                 a['balances'][idx] = compoundInt(a['balances'][idx - 1], a['intMonthly'])
 
-        # add contributions to 401(k), Roth 401(k), and HSA type accounts
+        # add contributions
+        # TODO: add another check for when RMDs kick in (regardless of maxAge)?
         for a in accounts:
-            if a['type'] in ['401(k)', 'Roth 401(k)', 'HSA']:
-                if ages[idx] >= a['minAge'] and ages[idx] <= a['maxAge']:  # active contributions while working
-                  # TODO: add another check for when RMDs kick in (regardless of maxAge)?
+            if 'hasContributions' in a:  # defined contribution account
+                if ages[idx] >= a['minAge'] and ages[idx] <= a['maxAge']:  # active contribution
                     a['payments'][idx] = a['delMonthly']
                     a['balances'][idx] += a['delMonthly']
 
-        # update end-of-Dec tracking for IRA RMDs
-        if idx == nextDecIdx:  # it's Dec, save balances (with new interest) for use next year
-            nextDecIdx += 12
-            for a in accounts:
-                if a['type'] in ['IRA', '401(k)']:
-                    a['prevDecBalance'] = a['balances'][idx]
+        # get total income and expenses
+        for a in accounts:
+            if 'hasIncome' in a:
+                if ages[idx] >= a['minAge'] and ages[idx] <= a['maxAge']:  # active income stream
+                    a['payments'][idx] = a['delMonthly']
+                    if a['earned']:
+                        earnedIncomes[idx] += a['delMonthly']
+                    totalIncomes[idx]  += a['delMonthly']
+            elif 'hasRMDs' in a:
+                RMD = getReqMinDistrib(ages[idx], a['prevDecBalance'])
+                if RMD > 0.0:
+                    payment = min([a['balances'][idx - 1], RMD])
+                    a['payments'][idx] = -payment  # withdrawals are negative
+                    a['balances'][idx] -= payment  # withdrawals are negative
+                    totalIncomes[idx] += payment
+            elif 'hasExpenses' in a:
+                if ages[idx] >= a['minAge'] and ages[idx] <= a['maxAge']:  # active expense stream
+                    a['payments'][idx] = a['delMonthly']
+                    expenses[idx] += a['delMonthly']
 
-        # determine net cash flow this month
-        discret[idx] = incomes[idx] + expenses[idx]
-        avail = discret[idx]
+        # determine net cash flow
+        discretionaries[idx] = totalIncomes[idx] + expenses[idx]
+        avail = discretionaries[idx]
 
-        # use positive cash flow against prioritized list of activities
+        # use positive cash flow on accounts with contribution limits and then savings spillover
         if avail > 0.0:
-            # pay down any outstanding loans
-            for a in accounts:
-                if a['type'] == 'loan' and a['balances'][idx] < 0.0:
-                    # loan with outstanding balance
-                    payment = max([-avail, a['balances'][idx]])
-                        # max() because balances are negative
-                    a['balances'][idx] -= payment
-                    a['payments'][idx] = payment
-                    avail += payment
-
-                    # notify if loan was just paid off
-                    if a['balances'][idx] >= 0.0:
-                        print('%s loan paid off at age %0.2f\n' % (a['label'], ages[idx]))
-
             # maximize Roth IRA contributions
+            # TODO: switch to getRothContrib() with separately calculated earned and Roth AGI incomes
             if avail > 0.0:
+                earnedAvail = earnedIncomes[idx]
                 for a in accounts:
-                    if a['type'] == 'Roth':
-                        # TODO: switch to getRothContrib() with separately calculated earned and Roth
+                    if 'hasContributionLimits' in a:
                         # incomes
-                        contrib = min([incomes[idx], avail, a['maxContrib']])
+                        contrib = min([earnedAvail, avail, a['maxContrib']])
                             # can't contribute unless there's earned income to cover it
                         a['balances'][idx] += contrib
                         a['payments'][idx] += contrib
+                        earnedAvail -= contrib
                         avail -= contrib
 
             # add whatever remains to savings
             if avail > 0.0:
                 for a in accounts:
-                    if a['type'] == 'savings':
+                    if 'hasSavings' in a:
                         a['balances'][idx] += avail
                         a['payments'][idx] += avail
                         avail = 0.0
-                        break
+                        break  # only the first account with hasSavings is used
 
         # tap prioritized list of savings to address negative cash flow
         elif avail < 0.0:
-            # withdraw from general (taxable) savings
+            # withdraw from general savings
+            # TODO: estimate capital gains realizations
             for a in accounts:
-                if a['type'] == 'savings' and a['balances'][idx] > 0.0:
-                    # savings with an available balance
+                if 'hasSavings' in a and a['balances'][idx] > 0.0:  # savings with an available balance
                     withdraw = min([-avail, a['balances'][idx]])
                     a['balances'][idx] -= withdraw
                     a['payments'][idx] -= withdraw
                     avail += withdraw  # avail is negative
-                # TODO: estimate capital gains realizations
 
-            # withdraw from IRA accounts
+            # withdraw from accounts subject to RMDs
+            # TODO: account for optional withdrawals to reduce RMDs in future time steps
             if avail < 0.0:
                 for a in accounts:
-                    if a['type'] in ['IRA', '401(k)'] and a['balances'][idx] > 0.0:
-                        # IRA or 401(k) with an available balance
+                    if 'hasRMDs' in a and a['balances'][idx] > 0.0:  # IRA or 401(k) with an available balance
                         withdraw = min([-avail, a['balances'][idx]])
                         a['balances'][idx] -= withdraw
                         a['payments'][idx] -= withdraw
                         avail += withdraw  # avail is negative
-                        incomes[idx] += withdraw
-                            # IRA and 401(k) distributions are normal income for tax purposes
+                        totalIncomes[idx] += withdraw  # distributions are normal income for tax purposes
 
-            # withdraw from Roth accounts
+            # withdraw from other balance-holding accounts in order
+            # TODO: add support for HSAs that can't be used to cover general expenses
             if avail < 0.0:
                 for a in accounts:
-                    if a['type'] in ['Roth', 'Roth 401(k)'] and a['balances'][idx] > 0.0:
-                        # Roth with an available balance
+                    if 'hasBalance' in a and a['balances'][idx] > 0.0:
                         withdraw = min([-avail, a['balances'][idx]])
                         a['balances'][idx] -= withdraw
                         a['payments'][idx] -= withdraw
                         avail += withdraw  # avail is negative
+                        totalIncomes[idx] += withdraw  # distributions are normal income for tax purposes
+                          # the unique hasSavings account will have a zeroed balance here
 
         # calculate net worth
         for a in accounts:
-            if 'balances' in a:
-                netWorth[idx] += a['balances'][idx]
+            if 'hasBalance' in a:
+                netWorths[idx] += a['balances'][idx]
 
-    # plot monthly rates
-    plotUtils.multiPlot(ages, [incomes, expenses, discret], 'age (yr)', 'rate (' + params['currencyYear'] + ' $/mo)',
-                        ['total income', 'total expenses', 'discretionary'])
+        # update end-of-December tracking for IRA RMDs
+        if idx == nextDecIdx:  # it's December, save balances (with new interest) for use next year
+            nextDecIdx += 12
+            for a in accounts:
+                if 'hasRMDs' in a:
+                    a['prevDecBalance'] = a['balances'][idx]
 
-    # plot loan class payments and account balances
+    # plot aggregate incomes and expenses
+    plotUtils.multiPlot(ages, [earnedIncomes, totalIncomes, expenses, discretionaries],
+                        'age (yr)', 'rate (' + params['currencyYear'] + ' $/mo)',
+                        ['earned income', 'total income', 'total expenses', 'discretionary'])
+
+    # plot accounts with balances
     balances = []
+    names = []
+    doPlot = False
+    for a in accounts:
+        if 'balances' in a:
+            doPlot = True
+            balances.append(a['balances'])
+            names.append(a['label'])
+    if doPlot:
+        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (' + params['currencyYear'] + ' $)', names)
+
+    # plot contributions and payments
     payments = []
     names = []
     doPlot = False
     for a in accounts:
-        if a['type'] == 'loan':
+        if 'payments' in a:
             doPlot = True
-            balances.append(a['balances'])
             payments.append(a['payments'])
             names.append(a['label'])
     if doPlot:
-        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (' + params['currencyYear'] + ' $)', names)
-        plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (' + params['currencyYear'] + ' $/mo)',names)
-
-    # plot savings class account balances
-    balances = []
-    payments = []
-    names = []
-    doPlot = False
-    for a in accounts:
-        if a['type'] in ['savings', '401(k)', 'IRA', 'Roth 401(k)', 'Roth', 'HSA']:
-            doPlot = True
-            balances.append(a['balances'])
-            payments.append(a['payments'])
-            names.append(a['label'])
-    if doPlot:
-        plotUtils.multiPlot(ages, balances, 'age (yr)', 'balance (' + params['currencyYear'] + ' $)', names)
         plotUtils.multiPlot(ages, payments, 'age (yr)', 'payments (' + params['currencyYear'] + ' $/mo)', names)
 
     # plot net worth
-    plotUtils.singlePlot(ages, netWorth, 'age (yr)', 'net worth (' + params['currencyYear'] + ' $)')
+    plotUtils.singlePlot(ages, netWorths, 'age (yr)', 'net worth (' + params['currencyYear'] + ' $)')
 
     return accounts
 
 
-def getRothContrib(rothIncome, earnedIncome, maxContrib, phaseOutBeg, phaseOutEnd):
+def getRothContrib(totalIncome, earnedIncome, maxContrib, phaseOutBeg, phaseOutEnd):
     '''
     Get the allowable Roth IRA contribution according to IRS rules for phase-out and income limits.
 
-    Calculations are based on IRS publication 590-A, Worksheet 2-2 from 2017 (ignoring some minor
-    rounding and minimum rules on the final value)
+    Calculations are based on IRS publication 590-A, Worksheet 2-2 from 2017 (ignoring some minor rounding and minimum
+    rules on the final value)
     '''
 
-    if rothIncome < phaseOutBeg:  # contribution limited only by earned income
+    if totalIncome < phaseOutBeg:  # contribution limited only by earned income
         contrib = min([earnedIncome, maxContrib])
-    elif rothIncome < phaseOutEnd: # contribution limited by phase-out rules
-        mult = (phaseOutEnd - rothIncome) /  (phaseOutEnd - phaseOutBeg)
+    elif totalIncome < phaseOutEnd: # contribution limited by phase-out rules
+        mult = (phaseOutEnd - totalIncome) /  (phaseOutEnd - phaseOutBeg)
         contrib = mult * min([earnedIncome, maxContrib])
     else:  # ineligible for Roth contributions, income is too high
         contrib = 0.0
