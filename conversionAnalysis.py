@@ -134,20 +134,19 @@ elif setID == 3:
     scaleSSIRMAA = 1.0
 elif setID == 4:
     # CS: 2020
-    baseIncome = 97412.0  # 2019 federal AGI before IRA conversion income
+    baseIncome = 79010.0 + 22960.0 + 52.0  # both salaries and interest earnings
     federalDeduction = 24800.0 + 1300.0  # standard MFJ with one "over 65 or blind" adjustment
     stateExemption = 2250.0 * 2 + 8200.0  # 2 exemptions plus standard MFJ deduction with one "over 65" adjustment
-    stateModification = 5159.0  # 2019 contributions to KPERS
-    maxConversion = 120000.0
+    stateModification = 5223.0  # KPERS contributions that are included in K-40 income modifications
+    maxConversion = 100000.0
     fedBracket = fedIncomeTax.brackets2020MFJ
     funcState = calculateKSIncomeTax2020MFJ
     funcSSIRMAA = calculateSSIRMAAs2020MFJ
     scaleSSIRMAA = 1.0 + 0.75
       # full year for C, but only 2Q-4Q of 2022 for S
 
-
 # calculate the base tax, additional tax, and IRMAA penalties at each conversion value
-convIncome = np.linspace(0.01, maxConversion, 64)
+convIncome = np.linspace(0.01, maxConversion, 1024)
 baseState = funcState(baseIncome + stateModification - stateExemption)
 baseFed = fedIncomeTax.calculateTax(fedBracket, baseIncome - federalDeduction)
 stateTax = np.empty_like(convIncome)
