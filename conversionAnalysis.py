@@ -60,6 +60,43 @@ def calculateSSIRMAAs2020MFJ(income):
     return IRMAA
 
 
+def calculateSSIRMAAs2021S(income):
+
+    # based on 2021 single status, combined Part B and Part D IRMAA costs above the standard premium amount
+    IRMAA = 0.0
+    if income > 88000.0 and income <= 111000.0:
+        IRMAA = 12.0 * (207.9 - 148.6 + 12.3)
+    elif income > 111000.0 and income <= 138000.0:
+        IRMAA = 12.0 * (297.0 - 148.6 + 31.8)
+    elif income > 138000.0 and income <= 165000.0:
+        IRMAA = 12.0 * (386.1 - 148.6 + 51.2)
+    elif income > 165000.0 and income < 500000.0:
+        IRMAA = 12.0 * (475.2 - 148.6 + 70.7)
+    elif income >= 500000.0:
+        IRMAA = 12.0 * (504.9 - 148.6 + 77.10)
+
+    return IRMAA
+
+
+def calculateSSIRMAAs2021MFJ(income):
+
+    # based on 2021 married filing jointly status, combined Part B and Part D IRMAA costs above the standard premium
+    # amount
+    IRMAA = 0.0
+    if income > 176000.0 and income <= 222000.0:
+        IRMAA = 12.0 * (207.9 - 148.6 + 12.3)
+    elif income > 222000.0 and income <= 276000.0:
+        IRMAA = 12.0 * (297.0 - 148.6 + 31.8)
+    elif income > 276000.0 and income <= 330000.0:
+        IRMAA = 12.0 * (386.1 - 148.6 + 51.2)
+    elif income > 330000.0 and income < 750000.0:
+        IRMAA = 12.0 * (475.2 - 148.6 + 70.7)
+    elif income >= 750000.0:
+        IRMAA = 12.0 * (504.9 - 148.6 + 77.10)
+
+    return IRMAA
+
+
 def noSSIRMAA(income):
     return 0.0
 
@@ -81,8 +118,10 @@ def calculateKSIncomeTax2020MFJ(income):
     return tax
 
 
+calculateKSIncomeTax2021MFJ = calculateKSIncomeTax2020MFJ
+
 # parameters
-setID = 4
+setID = 6
 if setID == 0:
     # KS: 2019
     baseIncome = 5500.0 + 75430.74 + 13840.43 + (12.0 / 26.0) * 151e3 + 2539.91
@@ -144,6 +183,30 @@ elif setID == 4:
     funcSSIRMAA = calculateSSIRMAAs2020MFJ
     scaleSSIRMAA = 1.0 + 0.75
       # full year for C, but only 2Q-4Q of 2022 for S
+elif setID == 5:
+    # L: 2021
+    baseIncome = 36e3 + 0.85 * 32496.0 + 4.2e3
+      # Delta + SS + taxable savings dividends for the entire year
+      # TODO: Update SS and savings components
+    federalDeduction = 12550.0
+    stateExemption = 4750.0
+    stateModification = 0.0
+    maxConversion = 135000.0
+    fedBracket = fedIncomeTax.brackets2021S
+    funcState = calculateMIIncomeTax
+    funcSSIRMAA = calculateSSIRMAAs2021S
+    scaleSSIRMAA = 1.0
+elif setID == 6:
+    # CS: 2021
+    baseIncome = 79010.0 + 5.0 / 12.0 * 22960.0 + 52.0  # both salaries and interest earnings
+    federalDeduction = 25100.0 + 1300.0  # standard MFJ with one "over 65 or blind" adjustment
+    stateExemption = 2250.0 * 2 + 8200.0  # 2 exemptions plus standard MFJ deduction with one "over 65" adjustment
+    stateModification = 5223.0  # KPERS contributions that are included in K-40 income modifications
+    maxConversion = 100000.0
+    fedBracket = fedIncomeTax.brackets2021MFJ
+    funcState = calculateKSIncomeTax2021MFJ
+    funcSSIRMAA = calculateSSIRMAAs2021MFJ
+    scaleSSIRMAA = 2.0
 
 # calculate the base tax, additional tax, and IRMAA penalties at each conversion value
 convIncome = np.linspace(0.01, maxConversion, 1024)
