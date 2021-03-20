@@ -55,6 +55,8 @@ def timeSeries(params, accounts):
     fracMo, _ = math.modf(params['startAge'])
     nextDecIdx = 12 - (params['birthMonth'] + int(round(fracMo * 12.0))) % 12
         # month for integer ages plus fractional year (converted to month indices)
+    if nextDecIdx == 12:  # params['startAge'] is Dec
+        nextDecIdx = 0
 
     # initialize aggregate time series arrays
     earnedIncomes   = np.zeros_like(ages)
@@ -80,7 +82,7 @@ def timeSeries(params, accounts):
 
         # setup previous December's balance for later RMD calculations
         if 'hasRMDs' in a:
-             a['prevDecBalance'] = a['initBalance']  # best estimate for now, will be updated below
+             a['prevDecBalance'] = a['initBalance']  # estimate for now, will be updated below
 
     # run time series calculations
     for idx in range(1, len(ages)):  # skip the first age since it's just initial value data
@@ -104,7 +106,7 @@ def timeSeries(params, accounts):
                     a['payments'][idx] = a['delMonthly']
                     if a['earned']:
                         earnedIncomes[idx] += a['delMonthly']
-                    totalIncomes[idx]  += a['delMonthly']
+                    totalIncomes[idx] += a['delMonthly']
             elif 'hasRMDs' in a:
                 RMD = getReqMinDistrib(ages[idx], a['prevDecBalance'])
                 if RMD > 0.0:
@@ -129,7 +131,6 @@ def timeSeries(params, accounts):
                 earnedAvail = earnedIncomes[idx]
                 for a in accounts:
                     if 'hasContributionLimits' in a:
-                        # incomes
                         contrib = min([earnedAvail, avail, a['maxContrib']])
                             # can't contribute unless there's earned income to cover it
                         a['balances'][idx] += contrib

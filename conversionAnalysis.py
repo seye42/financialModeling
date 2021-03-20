@@ -185,24 +185,24 @@ elif setID == 4:
       # full year for C, but only 2Q-4Q of 2022 for S
 elif setID == 5:
     # L: 2021
-    baseIncome = 36e3 + 0.85 * 32496.0 + 4.2e3
+    baseIncome = 36e3 + 0.85 * 2743.1 * 12
       # Delta + SS + taxable savings dividends for the entire year
       # TODO: Update SS and savings components
     federalDeduction = 12550.0
     stateExemption = 4750.0
-    stateModification = 0.0
-    maxConversion = 135000.0
+    stateModification = 20e3 + 2743.1 * 12  # remove $20k of Delta and all of SS
+    maxConversion = 142671.0
     fedBracket = fedIncomeTax.brackets2021S
     funcState = calculateMIIncomeTax
     funcSSIRMAA = calculateSSIRMAAs2021S
     scaleSSIRMAA = 1.0
 elif setID == 6:
     # CS: 2021
-    baseIncome = 79010.0 + 5.0 / 12.0 * 22960.0 + 52.0  # both salaries and interest earnings
+    baseIncome = 79010.0 + 7916.0 + 1935.0 * 7 * 0.85 + 50.0  # both salaries, SS (Jun-Dec), and interest earnings
     federalDeduction = 25100.0 + 1300.0  # standard MFJ with one "over 65 or blind" adjustment
     stateExemption = 2250.0 * 2 + 8200.0  # 2 exemptions plus standard MFJ deduction with one "over 65" adjustment
     stateModification = 5223.0  # KPERS contributions that are included in K-40 income modifications
-    maxConversion = 100000.0
+    maxConversion = 125000.0
     fedBracket = fedIncomeTax.brackets2021MFJ
     funcState = calculateKSIncomeTax2021MFJ
     funcSSIRMAA = calculateSSIRMAAs2021MFJ

@@ -3,7 +3,7 @@ import numpy as np
 params = {}
 
 # ages
-params['startAge'] = 39.5833
+params['startAge'] = 39.0 + 7.0 / 12
 params['stopAge']  = 100.0
 params['birthMonth'] = 5
 params['currencyYear'] = '2020'
@@ -56,12 +56,12 @@ accounts = [\
  'hasSavings'    : True,
  'hasBalance'    : True,
  'initBalance'   : 60455.0,  # as of startAge
- 'intAPR'        : 0.0349 - APRInflation},  # inflation-adjusted returns
+ 'intAPR'        : 0.0434 - APRInflation},  # inflation-adjusted returns
 
 {'label'         : 'Roth IRA (Kirstin)',
  'hasBalance'    : True,
  'initBalance'   : 136800.0,
- 'intAPR'        : 0.090195 - APRInflation,  # inflation-adjusted returns
+ 'intAPR'        : 0.095162 - APRInflation,  # inflation-adjusted returns
  'hasContributionLimits': True,
  'maxContrib'    : 6000.0 / 12,  # annual IRS maximum, normalized to monthly
  'phaseOutBegAGI': np.Inf,  # AGI where phase-out begins
@@ -71,7 +71,7 @@ accounts = [\
 {'label'         : 'Roth IRA (Sean)',
  'hasBalance'    : True,
  'initBalance'   : 512508.0,
- 'intAPR'        : 0.058513 - APRInflation,  # inflation-adjusted returns
+ 'intAPR'        : 0.0703522 - APRInflation,  # inflation-adjusted returns
  'hasContributionLimits': True,
  'maxContrib'    : 6000.0 / 12,
  'phaseOutBegAGI': np.Inf,  # AGI where phase-out begins
@@ -81,7 +81,7 @@ accounts = [\
 {'label'         : 'Roth 401(k) (Sean)',
  'hasBalance'    : True,
  'initBalance'   : 15798.0,
- 'intAPR'        : 0.0551 - APRInflation,  # inflation-adjusted returns
+ 'intAPR'        : 0.0711 - APRInflation,  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
@@ -90,7 +90,7 @@ accounts = [\
 {'label'         : '401(k) (Sean)',
  'hasBalance'    : True,
  'initBalance'   : 2844.0,
- 'intAPR'        : 0.0551 - APRInflation,  # inflation-adjusted returns
+ 'intAPR'        : 0.0711 - APRInflation,  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
@@ -100,7 +100,7 @@ accounts = [\
 {'label'         : 'HSA',
  'hasBalance'    : True,
  'initBalance'   : 8914.0,
- 'intAPR'        : 0.0491 - APRInflation,  # inflation-adjusted returns
+ 'intAPR'        : 0.0531 - APRInflation,  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
