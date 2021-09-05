@@ -16,6 +16,7 @@ monthlies = [5776.85 5199.16 4621.48 4043.79 3466.11 2888.42
 dateRetire = datenum('04/01/2022');
 dateBirthC = datenum('05/17/1951');
 dateBirthS = datenum('02/20/1957');
+ageDiff = (dateBirthS - dateBirthC) / 365.25;
 
 % life expectancies
 ageLEC = 87.5;
@@ -27,11 +28,15 @@ APR = 0.07258;  % portfolio weighted returns as of 12/19/2020
 monRate = (1 + APR) ^ (1 / 12) - 1;
 
 %% generate age axes and total retirement months
-ageC = ((dateRetire - dateBirthC) / 365.25):(1 / 12):100;
-ageS = ((dateRetire - dateBirthS) / 365.25):(1 / 12):100;
-numMonS = floor((dateBirthS + 365.25 * ageS - dateRetire) / (365.25 / 12));
-numMonC = floor((dateBirthC + 365.25 * ageC - dateRetire) / (365.25 / 12));
-  % average out leap years and days-per-month variations
+ageC = ((dateRetire - dateBirthC) / 365.25):(3 / 12):100;
+ageS = ((dateRetire - dateBirthS) / 365.25):(3 / 12):100;
+
+%% initialize NPV lookup vectors to accelerate later calculations
+k1Powers = (1 ./ (1 + monRate) .^ (0 : (3 * max(length(ageC), length(ageS)) + 2)));
+  % k1 = 1 / (1 + monRate)
+  % k1Powers(1) has exponent 0, +2 on exponent range vector is to guarantee safe indexing below
+k2 = 1 / (1 - k1Powers(2));
+  % k2 = 1 / (1 - k)
 
 %% allocate the values cube and benefit election lookup vectors
 values = zeros(length(ageS), length(ageC), numel(monthlies));
@@ -47,38 +52,43 @@ for b = 1:numel(monthlies)  % benefit election
   r = benefitRow(b);
   c = benefitCol(b);
 
+  % hoist loop invariants 
+  amountBoth = monthlies(r, c);
+  proration = 1 + 0.25 * (r - 4);  % r == 2 => 0.5, r == 3 => 0.75, r == 4 => 1.0
+  amountProrated = proration * amountBoth;
+  amountMaximum = monthlies(1, c);  
+  numMonGtd = 12 * 5 * (r - 4);  % r == 5 => 5 y, r == 6 => 10 y, r == 7 => 15 y
+
   % loop through age-of-death pairings
   for v = 1:length(ageS)
     if (r == 1)  % maximum
       % monthly payments continue only while S is alive
-      amounts = monthlies(r, c) * ones(numMonS(v), 1);
+      numMon = 3 * v - 1;
     elseif (r >= 5) % life-certain
-      % monthly payments continue the maximum of S's life or the guaranteed period
-      numMonGtd = 12 * 5 * (r - 4);  % r == 5 => 5 y, r == 6 => 10 y, r == 7 => 15 y
-      numMon = max(numMonGtd, numMonS(v));
-      amounts = monthlies(r, c) * ones(numMon, 1);
+      % monthly payments continue the maximum of S's life or the guaranteed period, whichever is longer
+      numMon = max(numMonGtd, 3 * v - 1);
     endif
-    monValue = npv(monRate, amounts, 0);
+    monValue = monthlies(r, c) * ((k1Powers(1) - k1Powers(numMon + 2)) * k2 - 1);
+      % -1 since starting at time 0 and there's no payment until the end of that period
 
     for h = 1:length(ageC)
       if ((r >= 2) && (r <= 4))  % joint-survivor
         % period where both C & S are alive
-        numMonBoth = min(numMonC(h), numMonS(v));
-        amountBoth = monthlies(r, c);
+        numMonBoth = min(3 * h - 1, 3 * v - 1);
 
         % period where only one of C & S are alive
-        numMonOne = abs(numMonC(h) - numMonS(v));
-        if (numMonS(v) < numMonC(h))  % C died after S
-          proration = 1 + 0.25 * (r - 4);  % r == 2 => 0.5, r == 3 => 0.75, r == 4 => 1.0
-          amountOne = proration * monthlies(r, c);
+        numMonOne = abs(3 * h - 3 * v);
+        if (v < h)  % C died after S
+          amountOne = amountProrated;
             % C's benefit is prorated based on benefit election
         else  % C died before S
-          amountOne = monthlies(1, c);  % revert to "maximum" benefit election
+          amountOne = amountMaximum;  % revert to "maximum" benefit election
         endif
 
         % combined timeline
-        amounts = [amountBoth * ones(numMonBoth, 1); amountOne * ones(numMonOne, 1)];
-        monValue = npv(monRate, amounts, 0);
+        monValue = amountBoth * ((k1Powers(1) - k1Powers(numMonBoth + 2)) * k2 - 1);
+        monValue += amountOne * (k1Powers(numMonBoth + 2) - k1Powers(numMonBoth + numMonOne + 2)) * k2;
+          % no adjustment for period zero since resuming at the end of the previous series
       endif
         % all other cases for r are handled above this loop
 
@@ -100,6 +110,10 @@ for b = 1:numel(monthlies)  % benefit election
   figure;
   imagesc(ageC, ageS, values(:, :, b) / 1e3);
   set(gca, 'ydir', 'normal', 'fontsize', 16);
+  hold('on');
+  plot([min(ageC) max(ageC)], [ageLES ageLES], ':w', 'linewidth', 2);
+  plot([ageLEC ageLEC], [min(ageS) max(ageS)], ':w', 'linewidth', 2);
+  plot([ageC(1) ageC(end)], [ageS(1) (ageC(end) - ageDiff)], 'w', 'linewidth', 2);
   axis('image');
   caxis([cMin cMax] ./ 1e3);
   xlabel('C age at death (y)');
@@ -107,40 +121,58 @@ for b = 1:numel(monthlies)  % benefit election
   title(sprintf('%d/%d: %s, %s', b, numel(monthlies), rowLabels{r}, colLabels{c}));
   h = colorbar;
   set(h, 'fontsize', 16);
-  set(get(h, 'ylabel'), 'string', 'NPV ($k 2021)');
+  set(get(h, 'ylabel'), 'string', 'NPV ($k 2022)');
 endfor
 
 %% determine the best election for each age-of-death pairing
-best = zeros(length(ageS), length(ageC));
+bestNPV   = zeros(length(ageS), length(ageC));
+bestElect = zeros(length(ageS), length(ageC));
 for v = 1:length(ageS)
   for h = 1:length(ageC)
-    [~, best(v, h)] = max(values(v, h, :));
+    [bestNPV(v, h), bestElect(v, h)] = max(values(v, h, :));
   endfor
 endfor
 
 %% plot best elections
 % determine the number of unique elections and their labels
-uniqueElections = unique(best(:));
+uniqueElects = unique(bestElect(:));
 uniqueLabels = {};
-for u = 1:length(uniqueElections)
-  best(best == uniqueElections(u)) = -u;
-  uniqueLabels{u} = sprintf('%s, %s', rowLabels{benefitRow(uniqueElections(u))},...
-                                      colLabels{benefitCol(uniqueElections(u))});
+for u = 1:length(uniqueElects)
+  bestElect(bestElect == uniqueElects(u)) = -u;
+  uniqueLabels{u} = sprintf('%s, %s', rowLabels{benefitRow(uniqueElects(u))},...
+                                      colLabels{benefitCol(uniqueElects(u))});
 endfor
-best *= -1;
+bestElect *= -1;
 
-% plot
+% plot best elections
 figure;
-imagesc(ageC, ageS, best);
+imagesc(ageC, ageS, bestElect);
 set(gca, 'ydir', 'normal', 'fontsize', 16);
 hold('on');
-plot([min(ageC) max(ageC)], [ageLES ageLES], 'w', 'linewidth', 2);
-plot([ageLEC ageLEC], [min(ageS) max(ageS)], 'w', 'linewidth', 2);
+plot([min(ageC) max(ageC)], [ageLES ageLES], ':w', 'linewidth', 2);
+plot([ageLEC ageLEC], [min(ageS) max(ageS)], ':w', 'linewidth', 2);
+plot([ageC(1) ageC(end)], [ageS(1) (ageC(end) - ageDiff)], 'w', 'linewidth', 2);
 axis('image');
 xlabel('C age at death (y)');
 ylabel('S age at death (y)');
 title('best election by age pairs');
-colormap(rainbow(length(uniqueElections)));
+colormap(rainbow(length(uniqueElects)));
 h = colorbar;
-set(h, 'fontsize', 16, 'ytick', linspace(1.5, length(uniqueElections) - 0.5, length(uniqueElections)),...
+set(h, 'fontsize', 16, 'ytick', linspace(1.5, length(uniqueElects) - 0.5, length(uniqueElects)),...
        'yticklabel', uniqueLabels);
+
+% plot NPVs with best elections
+figure;
+imagesc(ageC, ageS, bestNPV / 1e3);
+set(gca, 'ydir', 'normal', 'fontsize', 16);
+hold('on');
+plot([min(ageC) max(ageC)], [ageLES ageLES], ':w', 'linewidth', 2);
+plot([ageLEC ageLEC], [min(ageS) max(ageS)], ':w', 'linewidth', 2);
+plot([ageC(1) ageC(end)], [ageS(1) (ageC(end) - ageDiff)], 'w', 'linewidth', 2);
+axis('image');
+xlabel('C age at death (y)');
+ylabel('S age at death (y)');
+title('best election NPV by age pairs');
+h = colorbar;
+set(h, 'fontsize', 16);
+set(get(h, 'ylabel'), 'string', 'NPV ($k 2022)');
