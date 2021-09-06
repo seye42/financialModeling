@@ -28,8 +28,8 @@ APR = 0.07258;  % portfolio weighted returns as of 12/19/2020
 monRate = (1 + APR) ^ (1 / 12) - 1;
 
 %% generate age axes and total retirement months
-ageC = ((dateRetire - dateBirthC) / 365.25):(3 / 12):100;
-ageS = ((dateRetire - dateBirthS) / 365.25):(3 / 12):100;
+ageC = ((dateRetire - dateBirthC) / 365.25):(1 / 12):100;
+ageS = ((dateRetire - dateBirthS) / 365.25):(1 / 12):100;
 
 %% initialize NPV lookup vectors to accelerate later calculations
 k1Powers = (1 ./ (1 + monRate) .^ (0 : (3 * max(length(ageC), length(ageS)) + 2)));
@@ -38,10 +38,13 @@ k1Powers = (1 ./ (1 + monRate) .^ (0 : (3 * max(length(ageC), length(ageS)) + 2)
 k2 = 1 / (1 - k1Powers(2));
   % k2 = 1 / (1 - k)
 
-%% allocate the values cube and benefit election lookup vectors
+%% allocate the calculation arrays and lookup vectors
 values = zeros(length(ageS), length(ageC), numel(monthlies));
 benefitRow = repmat(1:size(monthlies, 1), size(monthlies, 2), 1)(:);
 benefitCol = repmat(1:size(monthlies, 2), 1, size(monthlies, 1))(:);
+remMonS = repmat((0:(length(ageS) - 1)).', 1, length(ageC));
+remMonC = repmat(0:(length(ageC) - 1), length(ageS), 1);
+amountOne = zeros(length(ageS), length(ageC));
 
 %% calculate the present values for all age-of-death pairs and benefit elections
 for b = 1:numel(monthlies)  % benefit election
@@ -52,50 +55,36 @@ for b = 1:numel(monthlies)  % benefit election
   r = benefitRow(b);
   c = benefitCol(b);
 
-  % hoist loop invariants 
-  amountBoth = monthlies(r, c);
-  proration = 1 + 0.25 * (r - 4);  % r == 2 => 0.5, r == 3 => 0.75, r == 4 => 1.0
-  amountProrated = proration * amountBoth;
-  amountMaximum = monthlies(1, c);  
-  numMonGtd = 12 * 5 * (r - 4);  % r == 5 => 5 y, r == 6 => 10 y, r == 7 => 15 y
-
-  % loop through age-of-death pairings
-  for v = 1:length(ageS)
-    if (r == 1)  % maximum
-      % monthly payments continue only while S is alive
-      numMon = 3 * v - 1;
-    elseif (r >= 5) % life-certain
-      % monthly payments continue the maximum of S's life or the guaranteed period, whichever is longer
-      numMon = max(numMonGtd, 3 * v - 1);
-    endif
+  % determine NPV of monthly stream based on benefit election
+  if (r == 1)  % maximum
+    % monthly payments continue only while S is alive
+    numMon = remMonS;
     monValue = monthlies(r, c) * ((k1Powers(1) - k1Powers(numMon + 2)) * k2 - 1);
       % -1 since starting at time 0 and there's no payment until the end of that period
+  elseif (r >= 5) % life-certain
+    % monthly payments continue the maximum of S's life or the guaranteed period, whichever is longer
+    numMonGtd = 12 * 5 * (r - 4);  % r == 5 => 5 y, r == 6 => 10 y, r == 7 => 15 y
+    numMon = max(numMonGtd, remMonS);
+    monValue = monthlies(r, c) * ((k1Powers(1) - k1Powers(numMon + 2)) * k2 - 1);
+      % -1 since starting at time 0 and there's no payment until the end of that period
+  else  % joint-survivor
+    % period where both C & S are alive
+    numMonBoth = min(remMonS, remMonC);
 
-    for h = 1:length(ageC)
-      if ((r >= 2) && (r <= 4))  % joint-survivor
-        % period where both C & S are alive
-        numMonBoth = min(3 * h - 1, 3 * v - 1);
+    % period where only one of C & S are alive
+    numMonOne = abs(remMonC - remMonS);
+    amountOne(:, :) = monthlies(1, c);  % default to "maximum"
+    proration = 1 + 0.25 * (r - 4);  % r == 2 => 0.5, r == 3 => 0.75, r == 4 => 1.0
+    amountOne(remMonC < remMonS) = proration * monthlies(r, c);  % override with proration
 
-        % period where only one of C & S are alive
-        numMonOne = abs(3 * h - 3 * v);
-        if (v < h)  % C died after S
-          amountOne = amountProrated;
-            % C's benefit is prorated based on benefit election
-        else  % C died before S
-          amountOne = amountMaximum;  % revert to "maximum" benefit election
-        endif
+    % combined timeline
+    monValue = monthlies(r, c) .* ((k1Powers(1) - k1Powers(numMonBoth + 2)) * k2 - 1);
+    monValue += amountOne .* (k1Powers(numMonBoth + 2) - k1Powers(numMonBoth + numMonOne + 2)) * k2;
+      % no adjustment for period zero since resuming at the end of the previous series
+  endif
 
-        % combined timeline
-        monValue = amountBoth * ((k1Powers(1) - k1Powers(numMonBoth + 2)) * k2 - 1);
-        monValue += amountOne * (k1Powers(numMonBoth + 2) - k1Powers(numMonBoth + numMonOne + 2)) * k2;
-          % no adjustment for period zero since resuming at the end of the previous series
-      endif
-        % all other cases for r are handled above this loop
-
-      % calculate total net present value
-      values(v, h, b) = lumpSum(c) + monValue;
-    endfor
-  endfor
+  % combine the monthly NPV and lump sum components
+  values(:, :, b) = lumpSum(c) + monValue;
 endfor
 
 %% plot NPVs
@@ -125,13 +114,7 @@ for b = 1:numel(monthlies)  % benefit election
 endfor
 
 %% determine the best election for each age-of-death pairing
-bestNPV   = zeros(length(ageS), length(ageC));
-bestElect = zeros(length(ageS), length(ageC));
-for v = 1:length(ageS)
-  for h = 1:length(ageC)
-    [bestNPV(v, h), bestElect(v, h)] = max(values(v, h, :));
-  endfor
-endfor
+[bestNPV, bestElect] = max(values, [], 3);
 
 %% plot best elections
 % determine the number of unique elections and their labels
