@@ -159,3 +159,30 @@ title('best election NPV by age pairs');
 h = colorbar;
 set(h, 'fontsize', 16);
 set(get(h, 'ylabel'), 'string', 'NPV ($k 2022)');
+
+% plot foregone NPV by election
+foregoneNPV = zeros(length(ageS), length(ageC), length(uniqueElects));
+for u = 1:length(uniqueElects)
+  foregoneNPV(:, :, u) = bestNPV - values(:, :, uniqueElects(u));
+endfor
+cMax = max(foregoneNPV(:)) / 1e3;
+subCol = ceil(sqrt(length(uniqueElects)));
+subRow = ceil(length(uniqueElects) / subCol);
+figure;
+for u = 1:length(uniqueElects)
+  subplot(subRow, subCol, u);
+  imagesc(ageC, ageS, foregoneNPV(:, :, u) / 1e3);
+  caxis([0 cMax]);
+  set(gca, 'ydir', 'normal', 'fontsize', 16);
+  hold('on');
+  plot([min(ageC) max(ageC)], [ageLES ageLES], ':w', 'linewidth', 2);
+  plot([ageLEC ageLEC], [min(ageS) max(ageS)], ':w', 'linewidth', 2);
+  plot([ageC(1) ageC(end)], [ageS(1) (ageC(end) - ageDiff)], 'w', 'linewidth', 2);
+  axis('image');
+  xlabel('C age at death (y)');
+  ylabel('S age at death (y)');
+  title(uniqueLabels{u});
+  h = colorbar;
+  set(h, 'fontsize', 16);
+  set(get(h, 'ylabel'), 'string', 'foregone NPV ($k 2022)');
+endfor
