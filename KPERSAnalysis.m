@@ -1,15 +1,15 @@
-%% KPERS benefit estimates (from 08/26/2019 summary)
+%% KPERS benefit estimates (from 10/27/2021 summary)
 colLabels = {'No Lump Sum' '10% Lump Sum' '20% Lump Sum' '30% Lump Sum' '40% Lump Sum' '50% Lump Sum'};
 rowLabels = {'Maximum' '50% Joint-Survivor' '75% Joint-Survivor' '100% Joint-Survivor'...
              '5-Year Life-Certain' '10-Year Life-Certain' '15-Year Life-Certain'};
-lumpSum = [0.00 64168.49 128336.97 192505.46 256673.94 320842.43];
-monthlies = [5776.85 5199.16 4621.48 4043.79 3466.11 2888.42
-             5395.57 4856.02 4316.46 3776.90 3237.34 2697.79
-             5199.16 4679.25 4159.33 3639.41 3119.50 2599.58
-             5002.75 4502.47 4002.20 3501.92 3001.65 2501.37
-             5661.31 5095.18 4529.05 3962.92 3396.79 2830.65
-             5488.00 4939.20 4390.40 3841.60 3292.80 2744.00
-             5083.62 4575.26 4066.90 3558.54 3050.17 2541.81];
+lumpSum = [0.00 64258.29 128516.57 192774.86 257033.14 321291.43];
+monthlies = [5784.93 5206.44 4627.94 4049.45 3470.96 2892.47
+             5403.13 4862.81 4322.50 3782.19 3241.88 2701.56
+             5206.44 4685.79 4165.15 3644.51 3123.86 2603.22
+             5009.75 4508.77 4007.80 3506.82 3005.85 2504.87
+             5669.23 5102.31 4535.39 3968.46 3401.54 2834.62
+             5495.68 4946.12 4396.55 3846.98 3297.41 2747.84
+             5090.74 4581.66 4072.59 3563.52 3054.44 2545.37];
 
 %% parameters
 % dates
@@ -24,7 +24,9 @@ ageLES = 83.9;
   % from https://www.ssa.gov/cgi-bin/longevity.cgi on 09/03/2021
 
 % interest rate
-APR = 0.07258;  % portfolio weighted returns as of 12/19/2020
+APR = (1 + 0.07258) / (1 + 0.02733) - 1;  % inflation adjusted
+  % 7.258% portfolio weighted returns as of 12/19/2020
+  % 2.733% inflation is US average from 1981-2021
 monRate = (1 + APR) ^ (1 / 12) - 1;
 
 %% generate age axes and total retirement months
@@ -166,8 +168,13 @@ for u = 1:length(uniqueElects)
   foregoneNPV(:, :, u) = bestNPV - values(:, :, uniqueElects(u));
 endfor
 cMax = max(foregoneNPV(:)) / 1e3;
-subCol = ceil(sqrt(length(uniqueElects)));
-subRow = ceil(length(uniqueElects) / subCol);
+if (length(uniqueElects) <= 3)
+  subCol = length(uniqueElects);
+  subRow = 1;
+else
+  subCol = ceil(sqrt(length(uniqueElects)));
+  subRow = ceil(length(uniqueElects) / subCol);
+endif
 figure;
 for u = 1:length(uniqueElects)
   subplot(subRow, subCol, u);
