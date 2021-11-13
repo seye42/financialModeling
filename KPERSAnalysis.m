@@ -27,6 +27,13 @@ ageLES = 83.9;
 APR = (1 + 0.07258) / (1 + 0.02733) - 1;  % inflation adjusted
   % 7.258% portfolio weighted returns as of 12/19/2020
   % 2.733% inflation is US average from 1981-2021
+  % see https://kfknowledgebank.kaplan.co.uk/npv-with-inflation- for explanation:
+  % * 7.258% is the money or nominal return for mutual fund investments
+  % * 2.733% is the expected inflation
+  % * (1 + nominal) = (1 + real) * (1 + inflation), therefore real = (1 + nominal) / (1 + inflation) - 1
+  % * real rate is used as the discount rate since monthly payments don't have a COLA in the future and are therefore
+  %   real (present dollar) quantities
+  % see also https://xplaind.com/264707/npv-and-inflation
 monRate = (1 + APR) ^ (1 / 12) - 1;
 
 %% generate age axes and total retirement months
