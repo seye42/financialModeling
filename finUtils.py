@@ -33,6 +33,14 @@ def convAPRtoMon(rAnnual):
     return sign * rMonthly
 
 
+def adjustForInflation(rAnnual, iAnnual):
+    '''
+    Convert APR to equivalent monthly rate
+    '''
+
+    return (1.0 + rAnnual) / (1.0 + iAnnual) - 1.0
+
+
 def compoundInt(P, r):
     '''
     Calculate compound interest

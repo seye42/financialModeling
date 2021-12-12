@@ -1,16 +1,17 @@
 import numpy as np
+import finUtils
 
 params = {}
 
 # ages
-params['startAge'] = 39.0 + 11.0 / 12
+params['startAge'] = 40.0 + 7.0 / 12
 params['stopAge']  = 100.0
 params['birthMonth'] = 5
 params['currencyYear'] = '2021'
 retirementAge = 60.0
 
 # interest rates
-APRInflation = 0.0289  # 1980-2014 US CPI average
+APRInflation = 0.0300  # 1/1980-1/2021 US CPI average
 
 # accounts
 accounts = [\
@@ -18,15 +19,8 @@ accounts = [\
  'hasIncome'     : True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : (3675.0 * 26.0 + 4455.0) / 12.0,
-   # 1H2021 paystub take-home pay with estimated (based on 2020) annual bonus, includes 401(k) and HSA contributions
- 'earned'        : True},
-
-{'label'         : 'QSAI retention bonus',
- 'hasIncome'     : True,
- 'minAge'        : 40.1,
- 'maxAge'        : 40.2,
- 'delMonthly'    : 39660.0,  # $60,000 paid on ~7/1/2021 after tax withholdings
+ 'delMonthly'    : (4200.0 * 26.0 + 5500.0) / 12.0,
+   # 2H2021 paystub take-home pay with estimated annual bonus, includes 401(k) and HSA contributions
  'earned'        : True},
 
 {'label'         : 'Social Security (Kirstin)',
@@ -49,21 +43,19 @@ accounts = [\
  'hasExpenses'   : True,
  'minAge'        : 0.0,
  'maxAge'        : np.Inf,
- 'delMonthly'    : -5000.0},
-                    # based on 2020 checking account:
-                    # - $48,000 net withdrawals (with savings activity removed)
-                    # - 2 x $6,000 Roth IRA contributions
+ 'delMonthly'    : -5800.0},
+   # based on 2021 checking account form Jan to Nov
 
 {'label'         : 'taxable savings',
  'hasSavings'    : True,
  'hasBalance'    : True,
- 'initBalance'   : 75374.0,
- 'intAPR'        : 0.0434 - APRInflation},  # inflation-adjusted returns
+ 'initBalance'   : 134989.52,
+ 'intAPR'        : finUtils.adjustForInflation(0.0469, APRInflation)},  # inflation-adjusted returns
 
 {'label'         : 'Roth IRA (Kirstin)',
  'hasBalance'    : True,
- 'initBalance'   : 170505.0,
- 'intAPR'        : 0.095155 - APRInflation,  # inflation-adjusted returns
+ 'initBalance'   : 184229.48,
+ 'intAPR'        : finUtils.adjustForInflation(0.1035, APRInflation),  # inflation-adjusted returns
  'hasContributionLimits': True,
  'maxContrib'    : 6000.0 / 12,  # annual IRS maximum, normalized to monthly
  'phaseOutBegAGI': np.Inf,  # AGI where phase-out begins
@@ -72,8 +64,8 @@ accounts = [\
 
 {'label'         : 'Roth IRA (Sean)',
  'hasBalance'    : True,
- 'initBalance'   : 589733.0,
- 'intAPR'        : 0.069904 - APRInflation,  # inflation-adjusted returns
+ 'initBalance'   : 626129.01,
+ 'intAPR'        : finUtils.adjustForInflation(0.0770, APRInflation),  # inflation-adjusted returns
  'hasContributionLimits': True,
  'maxContrib'    : 6000.0 / 12,
  'phaseOutBegAGI': np.Inf,  # AGI where phase-out begins
@@ -82,8 +74,8 @@ accounts = [\
 
 {'label'         : 'Roth 401(k) (Sean)',
  'hasBalance'    : True,
- 'initBalance'   : 29070.0,
- 'intAPR'        : 0.0711 - APRInflation,  # inflation-adjusted returns
+ 'initBalance'   : 45214.22,
+ 'intAPR'        : finUtils.adjustForInflation(0.0801, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
@@ -91,18 +83,18 @@ accounts = [\
 
 {'label'         : '401(k) (Sean)',
  'hasBalance'    : True,
- 'initBalance'   : 6465.0,
- 'intAPR'        : 0.0711 - APRInflation,  # inflation-adjusted returns
+ 'initBalance'   : 11998.70,
+ 'intAPR'        : finUtils.adjustForInflation(0.0801, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : 6885.0 / 12,  # 4.5% of 1H2021 salary
+ 'delMonthly'    : 7097.02 / 12,  # 4.5% of 1H2021 salary
  'hasRMDs'       : True},
 
 {'label'         : 'HSA',
  'hasBalance'    : True,
- 'initBalance'   : 11454.0,
- 'intAPR'        : 0.0531 - APRInflation,  # inflation-adjusted returns
+ 'initBalance'   : 16400.42,
+ 'intAPR'        : finUtils.adjustForInflation(0.0537, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
