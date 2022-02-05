@@ -25,17 +25,17 @@ accounts = [\
 
 {'label'         : 'Social Security (Kirstin)',
  'hasIncome'     : True,
- 'minAge'        : 67.0,#62.0,
+ 'minAge'        : 62.0,
  'maxAge'        : np.Inf,
- 'delMonthly'    : 1660.5,#396.0,  # 566.0 for age 67, 701.0 for age 70
-   # from SSA estimate retrieved in May 2021, based on half of spouse's (at age 67) benefit
+ 'delMonthly'    : 1142.5,  # 396.0 for age 62, 566.0 for age 67, 701.0 for age 70
+   # from SSA estimate retrieved in May 2021, based on half of spouse's (at age 62) benefit
  'earned'        : False},
 
 {'label'         : 'Social Security (Sean)',
  'hasIncome'     : True,
- 'minAge'        : 70.0,#62.0,
+ 'minAge'        : 62.0,
  'maxAge'        : np.Inf,
- 'delMonthly'    : 4160.0,#2284.0,  # 3321.0 for age 67, 4160.0 for age 70
+ 'delMonthly'    : 2284.0,  # 2284.0 for age 62, 3321.0 for age 67, 4160.0 for age 70
    # from SSA estimate retrieved in May 2021
  'earned'        : False},
 

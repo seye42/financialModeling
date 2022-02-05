@@ -33,12 +33,12 @@ def convAPRtoMon(rAnnual):
     return sign * rMonthly
 
 
-def adjustForInflation(rAnnual, iAnnual):
+def adjustForInflation(realAnnual, inflationAnnual):
     '''
-    Convert APR to equivalent monthly rate
+    Adjust real APR for inflation to get nominal APR
     '''
 
-    return (1.0 + rAnnual) / (1.0 + iAnnual) - 1.0
+    return (1.0 + realAnnual) / (1.0 + inflationAnnual) - 1.0
 
 
 def compoundInt(P, r):
