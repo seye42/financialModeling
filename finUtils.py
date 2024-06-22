@@ -262,76 +262,76 @@ def getReqMinDistrib(age, P):
     - age is the account holder's current age in years
     - P is the account balance/principal as of 31 Dec the previous year
 
-    Calculations are based on IRS publication 590-B, Table III from 2019
+    Calculations are based on IRS publication 590-B, Table III from 2022
     '''
 
     '''
     Technically, rules allow for first RMD to occur by 1 Apr of the year following the one in which the person turns
-    70.5. This can sometimes forestall when the first distribution must be taken for people with birthdays in the
+    72.5. This can sometimes forestall when the first distribution must be taken for people with birthdays in the
     first half of the year. The IRS rule wording is a little unclear about whether a second withdrawal needs to occur
     in that same year. The simplifying assumption used here is that the first RMD is taken the year the account holder
-    age is 70 and proceeds normally on a monthly basis thereafter.
+    age is 72 and proceeds normally on a monthly basis thereafter.
     '''
 
-    # TODO: Update based on SECURE Act of 2019 increased age of 72
-    print('getReqMinDistrib() not updated for SECURE Act of 2019')
-
     # previous balance divisor
-    d = [27.4,  # age 70
+    d = [27.4,  # age 72
          26.5,
-         25.6,
-         24.7,
-         23.8,
+         25.5,
+         24.6,
+         23.7,
          22.9,
          22.0,
-         21.2,
-         20.3,
-         19.5,
-         18.7,  # age 80
-         17.9,
-         17.1,
-         16.3,
-         15.5,
-         14.8,
-         14.1,
-         13.4,
-         12.7,
-         12.0,
-         11.4,  # age 90
+         21.1,
+         20.2,  # age 80
+         19.4,
+         18.5,
+         17.7,
+         16.8,
+         16.0,
+         15.2,
+         14.4,
+         13.7,
+         12.9,
+         12.2,  # age 90
+         11.5,
          10.8,
-         10.2,
-         9.6,
-         9.1,
-         8.6,
-         8.1,
-         7.6,
-         7.1,
-         6.7,
-         6.3,  # age 100
-         5.9,
-         5.5,
+         10.1,
+         9.5,
+         8.9,
+         8.4,
+         7.8,
+         7.3,
+         6.8,
+         6.4,  # age 100
+         6.0,
+         5.6,
          5.2,
          4.9,
-         4.5,
-         4.2,
+         4.6,
+         4.3,
+         4.1,
          3.9,
          3.7,
+         3.5,  # age 110
          3.4,
-         3.1,  # age 110
+         3.3,
+         3.1,
+         3.0,
          2.9,
-         2.6,
-         2.4,
-         2.1,
-         1.9]  # 115 and over
-      # from IRS publication 590-B, Table III, 2019
+         2.8,
+         2.7,
+         2.5,
+         2.3,
+         2.0]  # 120 and over
+      # from IRS publication 590-B, Table III, 2022
 
     # calculate the required minimum distribution
-    if age < 70.0:
+    if age < 72.0:
         RMD = 0.0
-    elif age >= 115.0:
+    elif age >= 120.0:
         RMD = P / d[-1] / 12.0  # 12: convert annual RMD to a monthly value
     else:
-        idx = int(math.floor(age) - 70)
+        idx = int(math.floor(age) - 72)
         RMD = P / d[idx] / 12.0
 
     return RMD
