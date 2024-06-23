@@ -4,14 +4,15 @@ import finUtils
 params = {}
 
 # ages
-params['startAge'] = 40.0 + 7.0 / 12
+params['startAge'] = 43.0 + 1.0 / 12
 params['stopAge']  = 100.0
 params['birthMonth'] = 5
-params['currencyYear'] = '2021'
+params['currencyYear'] = '2024'
 retirementAge = 60.0
 
 # interest rates
-APRInflation = 0.0300  # 1/1980-1/2021 US CPI average
+APRInflation = 0.0308675  # 1980 to 2024 US CPI annualized average
+  # from https://www.usinflationcalculator.com/, with i = 3.81 ** (1/44) - 1
 
 # accounts
 accounts = [\
@@ -19,84 +20,95 @@ accounts = [\
  'hasIncome'     : True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : (4200.0 * 26.0 + 5500.0) / 12.0,
-   # 2H2021 paystub take-home pay with estimated annual bonus, includes 401(k) and HSA contributions
+ 'delMonthly'    : (4456.0 * 26.0 + 35000.0) / 12.0,
+    # 2Q2024 paystub take-home pay with estimated annual bonus, includes 401(k) and HSA contributions
  'earned'        : True},
 
-{'label'         : 'Social Security (Kirstin)',
+{'label'         : 'Social Security (K)',
  'hasIncome'     : True,
  'minAge'        : 62.0,
  'maxAge'        : np.Inf,
- 'delMonthly'    : 1142.5,  # 396.0 for age 62, 566.0 for age 67, 701.0 for age 70
-   # from SSA estimate retrieved in May 2021, based on half of spouse's (at age 62) benefit
+ 'delMonthly'    : 1320.5,
+    # from S SSA estimate retrieved in Jun 2024, based on half of spouse's (at age 62) benefit
  'earned'        : False},
 
-{'label'         : 'Social Security (Sean)',
+{'label'         : 'Social Security (S)',
  'hasIncome'     : True,
  'minAge'        : 62.0,
  'maxAge'        : np.Inf,
- 'delMonthly'    : 2284.0,  # 2284.0 for age 62, 3321.0 for age 67, 4160.0 for age 70
-   # from SSA estimate retrieved in May 2021
+ 'delMonthly'    : 2641.0,  # 2641.0 for age 62, 3827.0 for age 67, 4785.0 for age 70
+    # from SSA estimate retrieved in Jun 2024
  'earned'        : False},
 
 {'label'         : 'household budget',
  'hasExpenses'   : True,
  'minAge'        : 0.0,
  'maxAge'        : np.Inf,
- 'delMonthly'    : -5800.0},
-   # based on 2021 checking account form Jan to Nov
+ 'delMonthly'    : -6265.0},
+    # based on 2023 annual total expenses +5%, less the ones that are captured elsewhere here
 
 {'label'         : 'taxable savings',
  'hasSavings'    : True,
  'hasBalance'    : True,
- 'initBalance'   : 134989.52,
- 'intAPR'        : finUtils.adjustForInflation(0.0469, APRInflation)},  # inflation-adjusted returns
+ 'initBalance'   : 270070.7,
+ 'intAPR'        : finUtils.adjustForInflation(0.0431, APRInflation)},  # inflation-adjusted returns
 
-{'label'         : 'Roth IRA (Kirstin)',
+{'label'         : 'Roth IRA (K)',
  'hasBalance'    : True,
- 'initBalance'   : 184229.48,
- 'intAPR'        : finUtils.adjustForInflation(0.1035, APRInflation),  # inflation-adjusted returns
+ 'initBalance'   : 187079.39,
+ 'intAPR'        : finUtils.adjustForInflation(0.0892, APRInflation),  # inflation-adjusted returns
  'hasContributionLimits': True,
- 'maxContrib'    : 6000.0 / 12,  # annual IRS maximum, normalized to monthly
+ 'maxContrib'    : 7000.0 / 12,  # annual IRS maximum, normalized to monthly
  'phaseOutBegAGI': np.Inf,  # AGI where phase-out begins
  'phaseOutEndAGI': np.Inf},  # AGI where inelibible for contributions
-    # based on 2021 rules for married filing jointly
+    # based on 2024 rules for married filing jointly
 
-{'label'         : 'Roth IRA (Sean)',
+{'label'         : 'Roth IRA (S)',
  'hasBalance'    : True,
- 'initBalance'   : 626129.01,
- 'intAPR'        : finUtils.adjustForInflation(0.0770, APRInflation),  # inflation-adjusted returns
+ 'initBalance'   : 681385.89,
+ 'intAPR'        : finUtils.adjustForInflation(0.0724, APRInflation),  # inflation-adjusted returns
  'hasContributionLimits': True,
- 'maxContrib'    : 6000.0 / 12,
+ 'maxContrib'    : 7000.0 / 12,
  'phaseOutBegAGI': np.Inf,  # AGI where phase-out begins
  'phaseOutEndAGI': np.Inf},  # AGI where inelibible for contribution
-    # based on 2021 rules for married filing jointly
+    # based on 2024 rules for married filing jointly
 
-{'label'         : 'Roth 401(k) (Sean)',
+{'label'         : 'Roth 401(k) (S)',
  'hasBalance'    : True,
- 'initBalance'   : 45214.22,
- 'intAPR'        : finUtils.adjustForInflation(0.0801, APRInflation),  # inflation-adjusted returns
+ 'initBalance'   : 121105.03,
+ 'intAPR'        : finUtils.adjustForInflation(0.0743, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : 19500.0 / 12},
+ 'delMonthly'    : 23000.0 / 12},  # enough to guarantee match in 401(k) portion
 
-{'label'         : '401(k) (Sean)',
+{'label'         : '401(k) (S)',
  'hasBalance'    : True,
- 'initBalance'   : 11998.70,
- 'intAPR'        : finUtils.adjustForInflation(0.0801, APRInflation),  # inflation-adjusted returns
+ 'initBalance'   : 39665.75,
+ 'intAPR'        : finUtils.adjustForInflation(0.0743, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : 7097.02 / 12,  # 4.5% of 1H2021 salary
+ 'delMonthly'    : 8326.12 / 12,  # 4.5% of 2Q2024 salary
  'hasRMDs'       : True},
 
 {'label'         : 'HSA',
  'hasBalance'    : True,
- 'initBalance'   : 16400.42,
- 'intAPR'        : finUtils.adjustForInflation(0.0537, APRInflation),  # inflation-adjusted returns
+ 'initBalance'   : 33564.39,
+ 'intAPR'        : finUtils.adjustForInflation(0.0450, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : 7200.0 / 12}
+ 'delMonthly'    : 8300.0 / 12},
+
+{'label'         : 'house',
+ 'hasBalance'    : True,
+ 'initBalance'   : 526200.0,  # Zillow estimate from 6/22/2024 for recent Devonshire floorplans
+ 'intAPR'        : 0.00989,  # inflation-adjusted returns
+    # based on Farrand's purchase price of $206,145 on 4/16/1997, the Zillow estimate above, and inflation over the
+    # intervening period from https://www.usinflationcalculator.com/
+ 'hasContributions': False,
+ 'minAge'        : 0.0,
+ 'maxAge'        : np.inf,
+ 'delMonthly'    : 0.0}
 ]
