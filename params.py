@@ -4,7 +4,7 @@ import finUtils
 params = {}
 
 # ages
-params['startAge'] = 43.0 + 8.0 / 12
+params['startAge'] = 44.0 + 3.0 / 12
 params['stopAge']  = 100.0
 params['birthMonth'] = 5
 params['currencyYear'] = '2025'
@@ -20,8 +20,8 @@ accounts = [\
  'hasIncome'     : True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : (4861.0 * 26.0 + 29745.0) / 12.0,
-    # 4Q2024 paystub take-home pay with estimated annual bonus, includes 401(k) and HSA contributions
+ 'delMonthly'    : (4718.0 * 26.0 + 23796.0) / 12.0,
+    # 3Q2025 paystub take-home pay with estimated annual bonus, includes 401(k) and HSA contributions
  'earned'        : True},
 
 {'label'         : 'Social Security (K)',
@@ -50,12 +50,12 @@ accounts = [\
 {'label'         : 'taxable savings',
  'hasSavings'    : True,
  'hasBalance'    : True,
- 'initBalance'   : 304666.18,
+ 'initBalance'   : 386058.47,
  'intAPR'        : finUtils.adjustForInflation(0.0441, APRInflation)},  # inflation-adjusted returns
 
 {'label'         : 'Roth IRA (K)',
  'hasBalance'    : True,
- 'initBalance'   : 206150.32,
+ 'initBalance'   : 219704.83,
  'intAPR'        : finUtils.adjustForInflation(0.0904, APRInflation),  # inflation-adjusted returns
  'hasContributionLimits': True,
  'maxContrib'    : 7000.0 / 12,  # annual IRS maximum, normalized to monthly
@@ -65,7 +65,7 @@ accounts = [\
 
 {'label'         : 'Roth IRA (S)',
  'hasBalance'    : True,
- 'initBalance'   : 735938.59,
+ 'initBalance'   : 792859.34,
  'intAPR'        : finUtils.adjustForInflation(0.0793, APRInflation),  # inflation-adjusted returns
  'hasContributionLimits': True,
  'maxContrib'    : 7000.0 / 12,
@@ -75,26 +75,26 @@ accounts = [\
 
 {'label'         : 'Roth 401(k) (S)',
  'hasBalance'    : True,
- 'initBalance'   : 144419.78,
+ 'initBalance'   : 172880.16,
  'intAPR'        : finUtils.adjustForInflation(0.0829, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : 23500.0 / 12},  # enough to guarantee match in 401(k) portion
+ 'delMonthly'    : 23000.0 / 12},  # enough to guarantee match in 401(k) portion
 
 {'label'         : '401(k) (S)',
  'hasBalance'    : True,
- 'initBalance'   : 47762.99,
+ 'initBalance'   : 57466.57,
  'intAPR'        : finUtils.adjustForInflation(0.0829, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
  'maxAge'        : retirementAge,
- 'delMonthly'    : 8592.55 / 12,  # 4.5% of 4Q2024 salary
+ 'delMonthly'    : 8807.37 / 12,  # 4.5% of 3Q2025 salary
  'hasRMDs'       : True},
 
 {'label'         : 'HSA',
  'hasBalance'    : True,
- 'initBalance'   : 38495.51,
+ 'initBalance'   : 39221.01,
  'intAPR'        : finUtils.adjustForInflation(0.0437, APRInflation),  # inflation-adjusted returns
  'hasContributions': True,
  'minAge'        : 0.0,
@@ -103,7 +103,7 @@ accounts = [\
 
 {'label'         : 'house',
  'hasBalance'    : True,
- 'initBalance'   : 505900.0,  # Zillow estimate from Jan 2025 for recent Devonshire floorplans
+ 'initBalance'   : 523300.0,  # Zillow estimate from Aug 2025 for recent Devonshire floorplans
  'intAPR'        : 0.00825,  # inflation-adjusted returns
     # based on Farrand's purchase price of $206,145 on 4/16/1997, the Zillow estimate above, and inflation over the
     # intervening period from https://www.usinflationcalculator.com/
